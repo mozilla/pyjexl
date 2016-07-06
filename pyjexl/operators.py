@@ -18,4 +18,6 @@ binary_operators = {
     '-': Operator('-', 30, operator.sub),
     '*': Operator('*', 40, operator.mul),
     '/': Operator('/', 40, operator.truediv),
+
+    '==': Operator('==', 20, operator.eq),
 }

@@ -3,7 +3,7 @@ class Evaluator(object):
         method = getattr(self, 'visit_' + type(expression).__name__, self.generic_visit)
         return method(expression)
 
-    def visit_BinaryOperator(self, exp):
+    def visit_BinaryExpression(self, exp):
         left = self.evaluate(exp.left)
         right = self.evaluate(exp.right)
         return exp.operator.evaluate(left, right)

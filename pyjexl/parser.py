@@ -58,10 +58,10 @@ class JEXLVisitor(NodeVisitor):
             # Parents are always operators
             parent = cursor.parent
             while parent is not None and parent.operator.precedence >= piece.precedence:
-                parent = parent.parent
                 cursor = parent
+                parent = cursor.parent
 
-            node = BinaryOperator(operator=piece, left=cursor, parent=parent)
+            node = BinaryExpression(operator=piece, left=cursor, parent=parent)
             cursor.parent = node
             if parent is not None:
                 parent.right = node
@@ -101,7 +101,7 @@ class Node(object):
             return self.parent.root()
 
 
-class BinaryOperator(Node):
+class BinaryExpression(Node):
     __slots__ = ('operator', 'left', 'right', 'parent')
 
     def __init__(self, operator, left=None, right=None, parent=None):
@@ -111,7 +111,7 @@ class BinaryOperator(Node):
         self.right = right
 
     def __repr__(self):
-        return 'BinaryOperator(operator={operator}, left={left}, right={right})'.format(
+        return 'BinaryExpression(operator={operator}, left={left}, right={right})'.format(
             operator=repr(self.operator),
             left=repr(self.left),
             right=repr(self.right)
@@ -119,7 +119,7 @@ class BinaryOperator(Node):
 
     def __eq__(self, other):
         return (
-            isinstance(other, BinaryOperator)
+            isinstance(other, BinaryExpression)
             and self.operator == other.operator
             and self.left == other.left
             and self.right == other.right
