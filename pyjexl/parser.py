@@ -1,6 +1,6 @@
 from parsimonious import Grammar, NodeVisitor
 
-from pyjexl.operators import binary_operators, Operator
+from pyjexl.operators import binary_operators, Operator, unary_operators
 
 
 def operator_pattern(operators):
@@ -10,15 +10,15 @@ def operator_pattern(operators):
 
 
 jexl_grammar = Grammar(r"""
-    expression = unary_expression / binary_expression / value
+    expression = binary_expression / value
 
-    unary_expression = unary_op value
-    unary_op = "!"
+    unary_expression = unary_op _ value
+    unary_op = {unary_op_pattern}
 
     binary_expression = value (_ binary_op _ value)+
     binary_op = {binary_op_pattern}
 
-    value = boolean / string / numeric / ("(" _ expression _ ")")
+    value = boolean / string / numeric / unary_expression / ("(" _ expression _ ")")
     boolean = "true" / "false"
     string = ("\"" ~r"[^\"]*" "\"") / ("'" ~r"[^']*" "'")
     numeric = "-"? number ("." number)?
@@ -26,7 +26,8 @@ jexl_grammar = Grammar(r"""
     number = ~r"[0-9]+"
     _ = " "*
 """.format(
-    binary_op_pattern=operator_pattern(binary_operators.values())
+    binary_op_pattern=operator_pattern(binary_operators.values()),
+    unary_op_pattern=operator_pattern(unary_operators.values())
 ))
 
 
@@ -72,6 +73,13 @@ class JEXLVisitor(NodeVisitor):
     def visit_binary_op(self, node, children):
         return binary_operators[node.text]
 
+    def visit_unary_expression(self, node, children):
+        (operator, _, value) = children
+        return UnaryExpression(operator=operator, right=value)
+
+    def visit_unary_op(self, node, children):
+        return unary_operators[node.text]
+
     def visit_value(self, node, children):
         if children[0] == '(':
             (left_paren, _, expression, _, right_paren) = children
@@ -79,6 +87,14 @@ class JEXLVisitor(NodeVisitor):
         else:
             (value,) = children
             return value
+
+    def visit_boolean(self, node, children):
+        if node.text == 'true':
+            return Literal(True)
+        elif node.text == 'false':
+            return Literal(False)
+        else:
+            raise ValueError('Could not parse boolean: ' + node.text)
 
     def visit_numeric(self, node, children):
         number_type = float if '.' in node.text else int
@@ -88,11 +104,53 @@ class JEXLVisitor(NodeVisitor):
         return visited_children or node
 
 
-class Node(object):
-    __slots__ = ('parent',)
+class Node(type):
+    """
+    Metaclass for making AST nodes.
 
-    def __init__(self, parent=None):
-        self.parent = parent
+    AST nodes are kinda like mutable namedtuples; they have a set of
+    attributes that can be set positionally or by kwarg in the
+    constructor, default to None, and can be compared with eachother
+    easily.
+
+    Nodes are also given an extra `parent` field, which is useful mainly
+    for building binary expression trees. The parent field is ignored
+    in equality testing.
+    """
+    def __new__(meta, classname, bases, classdict):
+        classdict.setdefault('fields', [])
+        classdict['fields'].append('parent')
+        classdict.update({
+            '__init__': meta._init,
+            '__repr__': meta._repr,
+            '__eq__': meta._eq,
+            '__slots__': classdict['fields'],
+            'root': meta.root,
+        })
+        return type.__new__(meta, classname, bases, classdict)
+
+    def _init(self, *args, **kwargs):
+        for index, field in enumerate(self.fields):
+            if len(args) > index:
+                setattr(self, field, args[index])
+            else:
+                setattr(self, field, kwargs.get(field, None))
+
+    def _repr(self):
+        kwargs = [
+            '='.join([field, repr(getattr(self, field))])
+            for field in self.fields if field != 'parent'
+        ]
+        return '{name}({kwargs})'.format(
+            name=type(self).__name__,
+            kwargs=', '.join(kwargs)
+        )
+
+    def _eq(self, other):
+        return isinstance(other, type(self)) and all(
+            getattr(self, field) == getattr(other, field)
+            for field in self.fields if field != 'parent'
+        )
 
     def root(self):
         if self.parent is None:
@@ -101,40 +159,13 @@ class Node(object):
             return self.parent.root()
 
 
-class BinaryExpression(Node):
-    __slots__ = ('operator', 'left', 'right', 'parent')
-
-    def __init__(self, operator, left=None, right=None, parent=None):
-        super().__init__(parent=parent)
-        self.operator = operator
-        self.left = left
-        self.right = right
-
-    def __repr__(self):
-        return 'BinaryExpression(operator={operator}, left={left}, right={right})'.format(
-            operator=repr(self.operator),
-            left=repr(self.left),
-            right=repr(self.right)
-        )
-
-    def __eq__(self, other):
-        return (
-            isinstance(other, BinaryExpression)
-            and self.operator == other.operator
-            and self.left == other.left
-            and self.right == other.right
-        )
+class BinaryExpression(metaclass=Node):
+    fields = ['operator', 'left', 'right']
 
 
-class Literal(Node):
-    __slots__ = ('value',)
+class UnaryExpression(metaclass=Node):
+    fields = ['operator', 'right']
 
-    def __init__(self, value, parent=None):
-        super().__init__(parent=parent)
-        self.value = value
 
-    def __repr__(self):
-        return 'Literal({})'.format(repr(self.value))
-
-    def __eq__(self, other):
-        return isinstance(other, Literal) and self.value == other.value
+class Literal(metaclass=Node):
+    fields = ['value']

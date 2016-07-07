@@ -1,9 +1,9 @@
-from pyjexl.operators import binary_operators
-from pyjexl.parser import BinaryExpression, JEXLVisitor, Literal
+from pyjexl.operators import operators
+from pyjexl.parser import BinaryExpression, JEXLVisitor, Literal, UnaryExpression
 
 
 def op(operator):
-    return binary_operators[operator]
+    return operators[operator]
 
 
 def test_literal():
@@ -63,4 +63,22 @@ def test_binary_expression_encapsulation():
             ),
             right=Literal(7)
         )
+    )
+
+
+def test_unary_operator():
+    assert JEXLVisitor().parse('1*!!true-2') == BinaryExpression(
+        operator=op('-'),
+        left=BinaryExpression(
+            operator=op('*'),
+            left=Literal(1),
+            right=UnaryExpression(
+                operator=op('!'),
+                right=UnaryExpression(
+                    operator=op('!'),
+                    right=Literal(True)
+                )
+            )
+        ),
+        right=Literal(2)
     )

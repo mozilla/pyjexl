@@ -21,3 +21,13 @@ binary_operators = {
 
     '==': Operator('==', 20, operator.eq),
 }
+
+
+unary_operators = {
+    '!': Operator('!', 1000, operator.not_),
+}
+
+
+operators = {}
+operators.update(binary_operators)
+operators.update(unary_operators)
