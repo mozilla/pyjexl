@@ -11,6 +11,7 @@ def operator_pattern(operators):
 
 jexl_grammar = Grammar(r"""
     expression = binary_expression / value
+    subexpression = ("(" _ expression _ ")")
 
     unary_expression = unary_op _ value
     unary_op = {unary_op_pattern}
@@ -18,7 +19,8 @@ jexl_grammar = Grammar(r"""
     binary_expression = value (_ binary_op _ value)+
     binary_op = {binary_op_pattern}
 
-    value = boolean / string / numeric / unary_expression / ("(" _ expression _ ")")
+    value = boolean / string / numeric / unary_expression / subexpression
+
     boolean = "true" / "false"
     string = ("\"" ~r"[^\"]*" "\"") / ("'" ~r"[^']*" "'")
     numeric = "-"? number ("." number)?
@@ -36,6 +38,10 @@ class JEXLVisitor(NodeVisitor):
 
     def visit_expression(self, node, children):
         (expression,) = children
+        return expression
+
+    def visit_subexpression(self, node, children):
+        (left_paren, _, expression, _, right_paren) = children
         return expression
 
     def visit_binary_expression(self, node, children):

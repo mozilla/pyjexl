@@ -82,3 +82,31 @@ def test_unary_operator():
         ),
         right=Literal(2)
     )
+
+
+def test_subexpression():
+    assert JEXLVisitor().parse('(2+3)*4') == BinaryExpression(
+        operator=op('*'),
+        left=BinaryExpression(
+            operator=op('+'),
+            left=Literal(2),
+            right=Literal(3)
+        ),
+        right=Literal(4)
+    )
+
+
+def test_nested_subexpression():
+    assert JEXLVisitor().parse('(4*(2+3))/5') == BinaryExpression(
+        operator=op('/'),
+        left=BinaryExpression(
+            operator=op('*'),
+            left=Literal(4),
+            right=BinaryExpression(
+                operator=op('+'),
+                left=Literal(2),
+                right=Literal(3)
+            )
+        ),
+        right=Literal(5)
+    )
