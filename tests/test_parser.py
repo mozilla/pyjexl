@@ -1,5 +1,11 @@
 from pyjexl.operators import operators
-from pyjexl.parser import BinaryExpression, JEXLVisitor, Literal, UnaryExpression
+from pyjexl.parser import (
+    BinaryExpression,
+    JEXLVisitor,
+    Literal,
+    ObjectLiteral,
+    UnaryExpression
+)
 
 
 def op(operator):
@@ -110,3 +116,32 @@ def test_nested_subexpression():
         ),
         right=Literal(5)
     )
+
+
+def test_object_literal():
+    assert JEXLVisitor().parse('{foo: "bar", tek: 1+2}') == ObjectLiteral(
+        value={
+            'foo': Literal('bar'),
+            'tek': BinaryExpression(
+                operator=op('+'),
+                left=Literal(1),
+                right=Literal(2)
+            )
+        }
+    )
+
+
+def test_nested_object_literals():
+    assert JEXLVisitor().parse('{foo: {bar: "tek"}}') == ObjectLiteral(
+        value={
+            'foo': ObjectLiteral(
+                value={
+                    'bar': Literal('tek')
+                }
+            )
+        }
+    )
+
+
+def test_empty_object_literals():
+    assert JEXLVisitor().parse('{}') == ObjectLiteral(value={})

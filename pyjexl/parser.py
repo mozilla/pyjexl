@@ -11,7 +11,7 @@ def operator_pattern(operators):
 
 jexl_grammar = Grammar(r"""
     expression = binary_expression / value
-    subexpression = ("(" _ expression _ ")")
+    subexpression = "(" _ expression _ ")"
 
     unary_expression = unary_op _ value
     unary_op = {unary_op_pattern}
@@ -19,7 +19,16 @@ jexl_grammar = Grammar(r"""
     binary_expression = value (_ binary_op _ value)+
     binary_op = {binary_op_pattern}
 
-    value = boolean / string / numeric / unary_expression / subexpression
+    value = (
+        boolean / string / numeric / unary_expression / subexpression /
+        object_literal
+    )
+
+    object_literal = "{{" _ object_key_value_list? _ "}}"
+    object_key_value_list = object_key_value (_ "," _ object_key_value)*
+    object_key_value = identifier _ ":" _ expression
+
+    identifier = ~r"[a-zA-Z_\$][a-zA-Z0-9_\$]*"
 
     boolean = "true" / "false"
     string = ("\"" ~r"[^\"]*" "\"") / ("'" ~r"[^']*" "'")
@@ -94,6 +103,25 @@ class JEXLVisitor(NodeVisitor):
             (value,) = children
             return value
 
+    def visit_object_literal(self, node, children):
+        (left_brace, _, value, _, right_brace) = children
+
+        return ObjectLiteral(value=value[0] if isinstance(value, list) else {})
+
+    def visit_object_key_value_list(self, node, children):
+        key_values = [children[0]]
+        for (_, comma, _, key_value) in children[1]:
+            key_values.append(key_value)
+
+        return {identifier.value: value for identifier, value in key_values}
+
+    def visit_object_key_value(self, node, children):
+        (identifier, _, colon, _, value) = children
+        return (identifier, value)
+
+    def visit_identifier(self, node, children):
+        return Identifier(value=node.text)
+
     def visit_boolean(self, node, children):
         if node.text == 'true':
             return Literal(True)
@@ -105,6 +133,9 @@ class JEXLVisitor(NodeVisitor):
     def visit_numeric(self, node, children):
         number_type = float if '.' in node.text else int
         return Literal(number_type(node.text))
+
+    def visit_string(self, node, children):
+        return Literal(node.text[1:-1])
 
     def generic_visit(self, node, visited_children):
         return visited_children or node
@@ -174,4 +205,12 @@ class UnaryExpression(metaclass=Node):
 
 
 class Literal(metaclass=Node):
+    fields = ['value']
+
+
+class Identifier(metaclass=Node):
+    fields = ['value', 'from']
+
+
+class ObjectLiteral(metaclass=Node):
     fields = ['value']
