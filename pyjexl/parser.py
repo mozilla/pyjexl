@@ -141,49 +141,53 @@ class JEXLVisitor(NodeVisitor):
         return visited_children or node
 
 
-class Node(type):
+class NodeMeta(type):
     """
-    Metaclass for making AST nodes.
-
-    AST nodes are kinda like mutable namedtuples; they have a set of
-    attributes that can be set positionally or by kwarg in the
-    constructor, default to None, and can be compared with eachother
-    easily.
-
-    Nodes are also given an extra `parent` field, which is useful mainly
-    for building binary expression trees. The parent field is ignored
-    in equality testing.
+    Metaclass for making AST nodes. Handles adding the Node's custom
+    fields to __slots__ and ensures every Node has a parent field.
     """
     def __new__(meta, classname, bases, classdict):
-        classdict.setdefault('fields', [])
-        classdict['fields'].append('parent')
+        if 'parent' not in classdict['fields']:
+            classdict['fields'].append('parent')
         classdict.update({
-            '__init__': meta._init,
-            '__repr__': meta._repr,
-            '__eq__': meta._eq,
             '__slots__': classdict['fields'],
-            'root': meta.root,
         })
         return type.__new__(meta, classname, bases, classdict)
 
-    def _init(self, *args, **kwargs):
+
+class Node(object, metaclass=NodeMeta):
+    """
+    Base class for AST Nodes.
+
+    Nodes are like mutable namedtuples. Each node type should declare a
+    fields attribute on the class that lists the desired attributes for
+    the class.
+    """
+    fields = []
+
+    def __init__(self, *args, **kwargs):
+        """
+        Accepts values for this node's fields as both positional (in the
+        order defined in self.fields) and keyword arguments.
+        """
         for index, field in enumerate(self.fields):
             if len(args) > index:
                 setattr(self, field, args[index])
             else:
                 setattr(self, field, kwargs.get(field, None))
 
-    def _repr(self):
+    def __repr__(self):
         kwargs = [
             '='.join([field, repr(getattr(self, field))])
             for field in self.fields if field != 'parent'
         ]
+
         return '{name}({kwargs})'.format(
             name=type(self).__name__,
             kwargs=', '.join(kwargs)
         )
 
-    def _eq(self, other):
+    def __eq__(self, other):
         return isinstance(other, type(self)) and all(
             getattr(self, field) == getattr(other, field)
             for field in self.fields if field != 'parent'
@@ -196,21 +200,21 @@ class Node(type):
             return self.parent.root()
 
 
-class BinaryExpression(metaclass=Node):
+class BinaryExpression(Node):
     fields = ['operator', 'left', 'right']
 
 
-class UnaryExpression(metaclass=Node):
+class UnaryExpression(Node):
     fields = ['operator', 'right']
 
 
-class Literal(metaclass=Node):
+class Literal(Node):
     fields = ['value']
 
 
-class Identifier(metaclass=Node):
+class Identifier(Node):
     fields = ['value', 'from']
 
 
-class ObjectLiteral(metaclass=Node):
+class ObjectLiteral(Node):
     fields = ['value']
