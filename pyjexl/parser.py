@@ -21,12 +21,15 @@ jexl_grammar = Grammar(r"""
 
     value = (
         boolean / string / numeric / unary_expression / subexpression /
-        object_literal
+        object_literal / array_literal
     )
 
     object_literal = "{{" _ object_key_value_list? _ "}}"
     object_key_value_list = object_key_value (_ "," _ object_key_value)*
     object_key_value = identifier _ ":" _ expression
+
+    array_literal = "[" _ array_value_list? _ "]"
+    array_value_list = expression (_ "," _ expression)*
 
     identifier = ~r"[a-zA-Z_\$][a-zA-Z0-9_\$]*"
 
@@ -118,6 +121,17 @@ class JEXLVisitor(NodeVisitor):
     def visit_object_key_value(self, node, children):
         (identifier, _, colon, _, value) = children
         return (identifier, value)
+
+    def visit_array_literal(self, node, children):
+        (left_bracket, _, value, _, right_bracket) = children
+        return ArrayLiteral(value=value[0] if isinstance(value, list) else [])
+
+    def visit_array_value_list(self, node, children):
+        values = [children[0]]
+        for (_, comma, _, value) in children[1]:
+            values.append(value)
+
+        return values
 
     def visit_identifier(self, node, children):
         return Identifier(value=node.text)
@@ -217,4 +231,8 @@ class Identifier(Node):
 
 
 class ObjectLiteral(Node):
+    fields = ['value']
+
+
+class ArrayLiteral(Node):
     fields = ['value']

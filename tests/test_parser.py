@@ -1,5 +1,6 @@
 from pyjexl.operators import operators
 from pyjexl.parser import (
+    ArrayLiteral,
     BinaryExpression,
     JEXLVisitor,
     Literal,
@@ -139,3 +140,28 @@ def test_nested_object_literals():
 
 def test_empty_object_literals():
     assert JEXLVisitor().parse('{}') == ObjectLiteral({})
+
+
+def test_array_literals():
+    assert JEXLVisitor().parse('["foo", 1+2]') == ArrayLiteral([
+        Literal('foo'),
+        BinaryExpression(
+            operator=op('+'),
+            left=Literal(1),
+            right=Literal(2)
+        )
+    ])
+
+
+def test_nexted_array_literals():
+    assert JEXLVisitor().parse('["foo", ["bar", "tek"]]') == ArrayLiteral([
+        Literal('foo'),
+        ArrayLiteral([
+            Literal('bar'),
+            Literal('tek')
+        ])
+    ])
+
+
+def test_empty_array_literals():
+    assert JEXLVisitor().parse('[]') == ArrayLiteral([])
