@@ -2,6 +2,7 @@ from pyjexl.operators import operators
 from pyjexl.parser import (
     ArrayLiteral,
     BinaryExpression,
+    Identifier,
     JEXLVisitor,
     Literal,
     ObjectLiteral,
@@ -165,3 +166,17 @@ def test_nexted_array_literals():
 
 def test_empty_array_literals():
     assert JEXLVisitor().parse('[]') == ArrayLiteral([])
+
+
+def test_chained_identifiers():
+    assert JEXLVisitor().parse('foo.bar.baz + 1') == BinaryExpression(
+        operator=op('+'),
+        left=Identifier(
+            'baz',
+            id_from=Identifier(
+                'bar',
+                id_from=Identifier('foo')
+            )
+        ),
+        right=Literal(1)
+    )

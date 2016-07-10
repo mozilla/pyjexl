@@ -21,7 +21,7 @@ jexl_grammar = Grammar(r"""
 
     value = (
         boolean / string / numeric / unary_expression / subexpression /
-        object_literal / array_literal
+        object_literal / array_literal / chained_identifier / identifier
     )
 
     object_literal = "{{" _ object_key_value_list? _ "}}"
@@ -32,6 +32,7 @@ jexl_grammar = Grammar(r"""
     array_value_list = expression (_ "," _ expression)*
 
     identifier = ~r"[a-zA-Z_\$][a-zA-Z0-9_\$]*"
+    chained_identifier = identifier ("." identifier)+
 
     boolean = "true" / "false"
     string = ("\"" ~r"[^\"]*" "\"") / ("'" ~r"[^']*" "'")
@@ -136,6 +137,14 @@ class JEXLVisitor(NodeVisitor):
     def visit_identifier(self, node, children):
         return Identifier(value=node.text)
 
+    def visit_chained_identifier(self, node, children):
+        current = children[0]
+        for (separator, identifier) in children[1]:
+            identifier.id_from = current
+            current = identifier
+
+        return current
+
     def visit_boolean(self, node, children):
         if node.text == 'true':
             return Literal(True)
@@ -227,7 +236,7 @@ class Literal(Node):
 
 
 class Identifier(Node):
-    fields = ['value', 'from']
+    fields = ['value', 'id_from']
 
 
 class ObjectLiteral(Node):
