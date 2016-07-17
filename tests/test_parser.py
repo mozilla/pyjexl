@@ -6,6 +6,7 @@ from pyjexl.parser import (
     JEXLVisitor,
     Literal,
     ObjectLiteral,
+    Transform,
     UnaryExpression
 )
 
@@ -173,10 +174,43 @@ def test_chained_identifiers():
         operator=op('+'),
         left=Identifier(
             'baz',
-            id_from=Identifier(
+            subject=Identifier(
                 'bar',
-                id_from=Identifier('foo')
+                subject=Identifier('foo')
             )
         ),
         right=Literal(1)
+    )
+
+
+def test_transforms():
+    assert JEXLVisitor().parse('foo|tr1|tr2.baz|tr3({bar:"tek"})') == Transform(
+        name='tr3',
+        args=[ObjectLiteral({
+            'bar': Literal('tek')
+        })],
+        subject=Identifier(
+            'baz',
+            subject=Transform(
+                name='tr2',
+                args=[],
+                subject=Transform(
+                    name='tr1',
+                    args=[],
+                    subject=Identifier('foo')
+                )
+            )
+        )
+    )
+
+
+def test_transforms_multiple_arguments():
+    assert JEXLVisitor().parse('foo|bar("tek", 5, true)') == Transform(
+        name='bar',
+        args=[
+            Literal('tek'),
+            Literal(5),
+            Literal(True)
+        ],
+        subject=Identifier('foo')
     )

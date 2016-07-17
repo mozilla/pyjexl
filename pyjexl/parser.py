@@ -10,29 +10,38 @@ def operator_pattern(operators):
 
 
 jexl_grammar = Grammar(r"""
-    expression = binary_expression / value
-    subexpression = "(" _ expression _ ")"
+    expression = binary_expression / unary_expression / complex_value
 
-    unary_expression = unary_op _ value
-    unary_op = {unary_op_pattern}
+    unary_expression = unary_operator _ unary_operand
+    unary_operator = {unary_op_pattern}
+    unary_operand = (complex_value / unary_expression)
 
-    binary_expression = value (_ binary_op _ value)+
-    binary_op = {binary_op_pattern}
+    binary_expression = binary_operand (_ binary_operator _ binary_operand)+
+    binary_operator = {binary_op_pattern}
+    binary_operand = (complex_value / unary_expression)
+
+    complex_value = value (transform / attribute)*
+
+    transform = "|" identifier transform_arguments?
+    transform_arguments = "(" _ value_list _ ")"
+
+    attribute = "." identifier
 
     value = (
-        boolean / string / numeric / unary_expression / subexpression /
-        object_literal / array_literal / chained_identifier / identifier
+        boolean / string / numeric / subexpression / object_literal /
+        array_literal / identifier
     )
+
+    subexpression = "(" _ expression _ ")"
 
     object_literal = "{{" _ object_key_value_list? _ "}}"
     object_key_value_list = object_key_value (_ "," _ object_key_value)*
     object_key_value = identifier _ ":" _ expression
 
-    array_literal = "[" _ array_value_list? _ "]"
-    array_value_list = expression (_ "," _ expression)*
+    array_literal = "[" _ value_list? _ "]"
+    value_list = expression (_ "," _ expression)*
 
     identifier = ~r"[a-zA-Z_\$][a-zA-Z0-9_\$]*"
-    chained_identifier = identifier ("." identifier)+
 
     boolean = "true" / "false"
     string = ("\"" ~r"[^\"]*" "\"") / ("'" ~r"[^']*" "'")
@@ -89,23 +98,21 @@ class JEXLVisitor(NodeVisitor):
 
         return cursor.root()
 
-    def visit_binary_op(self, node, children):
+    def visit_binary_operator(self, node, children):
         return binary_operators[node.text]
+
+    def visit_binary_operand(self, node, children):
+        return children[0]
 
     def visit_unary_expression(self, node, children):
         (operator, _, value) = children
         return UnaryExpression(operator=operator, right=value)
 
-    def visit_unary_op(self, node, children):
+    def visit_unary_operator(self, node, children):
         return unary_operators[node.text]
 
-    def visit_value(self, node, children):
-        if children[0] == '(':
-            (left_paren, _, expression, _, right_paren) = children
-            return expression
-        else:
-            (value,) = children
-            return value
+    def visit_unary_operand(self, node, children):
+        return children[0]
 
     def visit_object_literal(self, node, children):
         (left_brace, _, value, _, right_brace) = children
@@ -127,23 +134,47 @@ class JEXLVisitor(NodeVisitor):
         (left_bracket, _, value, _, right_bracket) = children
         return ArrayLiteral(value=value[0] if isinstance(value, list) else [])
 
-    def visit_array_value_list(self, node, children):
+    def visit_value_list(self, node, children):
         values = [children[0]]
         for (_, comma, _, value) in children[1]:
             values.append(value)
 
         return values
 
+    def visit_complex_value(self, node, children):
+        (value, modifiers) = children
+
+        current = value
+        for (modifier,) in modifiers:
+            modifier.subject = current
+            current = modifier
+
+        return current
+
+    def visit_attribute(self, node, children):
+        (dot, identifier) = children
+        return identifier
+
+    def visit_transform(self, node, children):
+        (bar, identifier, arguments) = children
+        transform = Transform(name=identifier.value, args=[])
+
+        try:
+            transform.args = arguments[0]
+        except (IndexError, TypeError):
+            pass
+
+        return transform
+
+    def visit_transform_arguments(self, node, children):
+        (left_paren, _, values, _, right_paren) = children
+        return values
+
     def visit_identifier(self, node, children):
         return Identifier(value=node.text)
 
-    def visit_chained_identifier(self, node, children):
-        current = children[0]
-        for (separator, identifier) in children[1]:
-            identifier.id_from = current
-            current = identifier
-
-        return current
+    def visit_value(self, node, children):
+        return children[0]
 
     def visit_boolean(self, node, children):
         if node.text == 'true':
@@ -236,7 +267,7 @@ class Literal(Node):
 
 
 class Identifier(Node):
-    fields = ['value', 'id_from']
+    fields = ['value', 'subject']
 
 
 class ObjectLiteral(Node):
@@ -245,3 +276,7 @@ class ObjectLiteral(Node):
 
 class ArrayLiteral(Node):
     fields = ['value']
+
+
+class Transform(Node):
+    fields = ['name', 'args', 'subject']
