@@ -7,7 +7,8 @@ from pyjexl.parser import (
     Literal,
     ObjectLiteral,
     Transform,
-    UnaryExpression
+    UnaryExpression,
+    FilterExpression
 )
 
 
@@ -213,4 +214,27 @@ def test_transforms_multiple_arguments():
             Literal(True)
         ],
         subject=Identifier('foo')
+    )
+
+
+def test_filters():
+    assert JEXLVisitor().parse('foo[1][.bar[0]=="tek"].baz') == Identifier(
+        value='baz',
+        subject=FilterExpression(
+            relative=True,
+            expression=BinaryExpression(
+                operator=op('=='),
+                left=FilterExpression(
+                    relative=False,
+                    expression=Literal(0),
+                    subject=Identifier('bar', relative=True)
+                ),
+                right=Literal('tek')
+            ),
+            subject=FilterExpression(
+                relative=False,
+                expression=Literal(1),
+                subject=Identifier('foo')
+            )
+        )
     )

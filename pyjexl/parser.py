@@ -20,16 +20,18 @@ jexl_grammar = Grammar(r"""
     binary_operator = {binary_op_pattern}
     binary_operand = (complex_value / unary_expression)
 
-    complex_value = value (transform / attribute)*
+    complex_value = value (transform / attribute / filter_expression)*
 
     transform = "|" identifier transform_arguments?
     transform_arguments = "(" _ value_list _ ")"
 
     attribute = "." identifier
 
+    filter_expression = "[" _ expression _ "]"
+
     value = (
         boolean / string / numeric / subexpression / object_literal /
-        array_literal / identifier
+        array_literal / identifier / relative_identifier
     )
 
     subexpression = "(" _ expression _ ")"
@@ -42,6 +44,7 @@ jexl_grammar = Grammar(r"""
     value_list = expression (_ "," _ expression)*
 
     identifier = ~r"[a-zA-Z_\$][a-zA-Z0-9_\$]*"
+    relative_identifier = "." identifier
 
     boolean = "true" / "false"
     string = ("\"" ~r"[^\"]*" "\"") / ("'" ~r"[^']*" "'")
@@ -57,6 +60,10 @@ jexl_grammar = Grammar(r"""
 
 class JEXLVisitor(NodeVisitor):
     grammar = jexl_grammar
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._relative = 0
 
     def visit_expression(self, node, children):
         (expression,) = children
@@ -170,8 +177,17 @@ class JEXLVisitor(NodeVisitor):
         (left_paren, _, values, _, right_paren) = children
         return values
 
+    def visit_filter_expression(self, node, children):
+        (left_bracket, _, expression, _, right_bracket) = children
+        return FilterExpression(expression=expression, relative=expression.contains_relative())
+
     def visit_identifier(self, node, children):
-        return Identifier(value=node.text)
+        return Identifier(value=node.text, relative=False)
+
+    def visit_relative_identifier(self, node, children):
+        (dot, identifier) = children
+        identifier.relative = True
+        return identifier
 
     def visit_value(self, node, children):
         return children[0]
@@ -247,19 +263,38 @@ class Node(object, metaclass=NodeMeta):
             for field in self.fields if field != 'parent'
         )
 
+    @property
+    def children(self):
+        return iter(())
+
     def root(self):
         if self.parent is None:
             return self
         else:
             return self.parent.root()
 
+    def contains_relative(self):
+        children_relative = any(
+            child.contains_relative() for child in self.children if child is not None
+        )
+        return getattr(self, 'relative', children_relative)
+
 
 class BinaryExpression(Node):
     fields = ['operator', 'left', 'right']
 
+    @property
+    def children(self):
+        yield self.left
+        yield self.right
+
 
 class UnaryExpression(Node):
     fields = ['operator', 'right']
+
+    @property
+    def children(self):
+        yield self.right
 
 
 class Literal(Node):
@@ -267,7 +302,15 @@ class Literal(Node):
 
 
 class Identifier(Node):
-    fields = ['value', 'subject']
+    fields = ['value', 'subject', 'relative']
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('relative', False)
+        super().__init__(*args, **kwargs)
+
+    @property
+    def children(self):
+        yield self.subject
 
 
 class ObjectLiteral(Node):
@@ -280,3 +323,24 @@ class ArrayLiteral(Node):
 
 class Transform(Node):
     fields = ['name', 'args', 'subject']
+
+    @property
+    def children(self):
+        yield self.subject
+        yield from self.args
+
+
+class FilterExpression(Node):
+    fields = ['expression', 'subject', 'relative']
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('relative', False)
+        super().__init__(*args, **kwargs)
+
+    @property
+    def children(self):
+        yield self.expression
+        yield self.subject
+
+    def contains_relative(self):
+        return self.subject.contains_relative()
