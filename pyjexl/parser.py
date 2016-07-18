@@ -10,15 +10,20 @@ def operator_pattern(operators):
 
 
 jexl_grammar = Grammar(r"""
-    expression = binary_expression / unary_expression / complex_value
+    expression = conditional_expression / binary_expression / unary_expression / complex_value
 
-    unary_expression = unary_operator _ unary_operand
-    unary_operator = {unary_op_pattern}
-    unary_operand = (complex_value / unary_expression)
+    conditional_expression = (
+        conditional_test _ "?" _ expression _ ":" _ expression
+    )
+    conditional_test = (binary_expression / unary_expression / complex_value)
 
     binary_expression = binary_operand (_ binary_operator _ binary_operand)+
     binary_operator = {binary_op_pattern}
-    binary_operand = (complex_value / unary_expression)
+    binary_operand = (unary_expression / complex_value)
+
+    unary_expression = unary_operator _ unary_operand
+    unary_operator = {unary_op_pattern}
+    unary_operand = (unary_expression / complex_value)
 
     complex_value = value (transform / attribute / filter_expression)*
 
@@ -66,8 +71,7 @@ class JEXLVisitor(NodeVisitor):
         self._relative = 0
 
     def visit_expression(self, node, children):
-        (expression,) = children
-        return expression
+        return children[0]
 
     def visit_subexpression(self, node, children):
         (left_paren, _, expression, _, right_paren) = children
@@ -104,6 +108,13 @@ class JEXLVisitor(NodeVisitor):
             cursor = node
 
         return cursor.root()
+
+    def visit_conditional_expression(self, node, children):
+        (test, _, question, _, consequent, _, colon, _, alternate) = children
+        return ConditionalExpression(test=test, consequent=consequent, alternate=alternate)
+
+    def visit_conditional_test(self, node, children):
+        return children[0]
 
     def visit_binary_operator(self, node, children):
         return binary_operators[node.text]
@@ -344,3 +355,13 @@ class FilterExpression(Node):
 
     def contains_relative(self):
         return self.subject.contains_relative()
+
+
+class ConditionalExpression(Node):
+    fields = ['test', 'consequent', 'alternate']
+
+    @property
+    def children(self):
+        yield self.test
+        yield self.consequent
+        yield self.alternate

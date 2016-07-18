@@ -2,6 +2,7 @@ from pyjexl.operators import operators
 from pyjexl.parser import (
     ArrayLiteral,
     BinaryExpression,
+    ConditionalExpression,
     Identifier,
     JEXLVisitor,
     Literal,
@@ -237,4 +238,88 @@ def test_filters():
                 subject=Identifier('foo')
             )
         )
+    )
+
+
+def test_attribute_all_operands():
+    assert JEXLVisitor().parse('"foo".length + {foo: "bar"}.foo') == BinaryExpression(
+        operator=op('+'),
+        left=Identifier('length', subject=Literal('foo')),
+        right=Identifier(
+            value='foo',
+            subject=ObjectLiteral({
+                'foo': Literal('bar')
+            })
+        )
+    )
+
+
+def test_attribute_subexpression():
+    assert JEXLVisitor().parse('("foo" + "bar").length') == Identifier(
+        value='length',
+        subject=BinaryExpression(
+            operator=op('+'),
+            left=Literal('foo'),
+            right=Literal('bar')
+        )
+    )
+
+
+def test_attribute_array():
+    assert JEXLVisitor().parse('["foo", "bar"].length') == Identifier(
+        value='length',
+        subject=ArrayLiteral([
+            Literal('foo'),
+            Literal('bar')
+        ])
+    )
+
+
+def test_ternary_expression():
+    assert JEXLVisitor().parse('foo ? 1 : 0') == ConditionalExpression(
+        test=Identifier('foo'),
+        consequent=Literal(1),
+        alternate=Literal(0)
+    )
+
+
+def test_nested_grouped_ternary_expression():
+    assert JEXLVisitor().parse('foo ? (bar ? 1 : 2) : 3') == ConditionalExpression(
+        test=Identifier('foo'),
+        consequent=ConditionalExpression(
+            test=Identifier('bar'),
+            consequent=Literal(1),
+            alternate=Literal(2)
+        ),
+        alternate=Literal(3)
+    )
+
+
+def test_nested_non_grouped_ternary_expression():
+    assert JEXLVisitor().parse('foo ? bar ? 1 : 2 : 3') == ConditionalExpression(
+        test=Identifier('foo'),
+        consequent=ConditionalExpression(
+            test=Identifier('bar'),
+            consequent=Literal(1),
+            alternate=Literal(2)
+        ),
+        alternate=Literal(3)
+    )
+
+
+def test_object_ternary_expression():
+    assert JEXLVisitor().parse('foo ? {bar: "tek"} : "baz"') == ConditionalExpression(
+        test=Identifier('foo'),
+        consequent=ObjectLiteral({
+            'bar': Literal('tek')
+        }),
+        alternate=Literal('baz')
+    )
+
+
+def test_complex_binary_operator_balancing():
+    assert JEXLVisitor().parse('a.b == c.d') == BinaryExpression(
+        operator=op('=='),
+        left=Identifier('b', subject=Identifier('a')),
+        right=Identifier('d', subject=Identifier('c'))
     )
