@@ -1,3 +1,5 @@
+import ast
+
 from parsimonious import Grammar, NodeVisitor
 
 from pyjexl.operators import binary_operators, Operator, unary_operators
@@ -10,7 +12,7 @@ def operator_pattern(operators):
 
 
 jexl_grammar = Grammar(r"""
-    expression = conditional_expression / binary_expression / unary_expression / complex_value
+    expression = _ (conditional_expression / binary_expression / unary_expression / complex_value) _
 
     conditional_expression = (
         conditional_test _ "?" _ expression _ ":" _ expression
@@ -52,11 +54,13 @@ jexl_grammar = Grammar(r"""
     relative_identifier = "." identifier
 
     boolean = "true" / "false"
-    string = ("\"" ~r"[^\"]*" "\"") / ("'" ~r"[^']*" "'")
+    string = ~"\"[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*\""is /
+             ~"'[^'\\\\]*(?:\\\\.[^'\\\\]*)*'"is
     numeric = "-"? number ("." number)?
 
     number = ~r"[0-9]+"
-    _ = " "*
+
+    _ = ~r"\s*"
 """.format(
     binary_op_pattern=operator_pattern(binary_operators.values()),
     unary_op_pattern=operator_pattern(unary_operators.values())
@@ -71,7 +75,7 @@ class JEXLVisitor(NodeVisitor):
         self._relative = 0
 
     def visit_expression(self, node, children):
-        return children[0]
+        return children[1][0]
 
     def visit_subexpression(self, node, children):
         (left_paren, _, expression, _, right_paren) = children
@@ -216,7 +220,7 @@ class JEXLVisitor(NodeVisitor):
         return Literal(number_type(node.text))
 
     def visit_string(self, node, children):
-        return Literal(node.text[1:-1])
+        return Literal(ast.literal_eval(node.text))
 
     def generic_visit(self, node, visited_children):
         return visited_children or node

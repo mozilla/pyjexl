@@ -323,3 +323,11 @@ def test_complex_binary_operator_balancing():
         left=Identifier('b', subject=Identifier('a')),
         right=Identifier('d', subject=Identifier('c'))
     )
+
+
+def test_arbitrary_whitespace():
+    assert JEXLVisitor().parse('\t2\r\n+\n\r3\n\n') == BinaryExpression(
+        operator=op('+'),
+        left=Literal(2),
+        right=Literal(3)
+    )
