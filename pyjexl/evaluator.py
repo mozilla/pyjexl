@@ -30,16 +30,12 @@ class Context(MutableMapping):
 
 
 class Evaluator(object):
-    def __init__(self, context=None):
-        self.context = Context(context or {})
-        self.transforms = {}
-
-    def register_transform(self, transform_function):
-        self.transforms[transform_function.__name__] = transform_function
+    def __init__(self, transforms=None):
+        self.transforms = transforms or {}
 
     def evaluate(self, expression, context=None):
         method = getattr(self, 'visit_' + type(expression).__name__, self.generic_visit)
-        context = context or self.context
+        context = context or Context()
         return method(expression, context)
 
     def visit_BinaryExpression(self, exp, context):

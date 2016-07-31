@@ -1,12 +1,12 @@
 import pytest
 
-from pyjexl.evaluator import Evaluator
+from pyjexl.evaluator import Context, Evaluator
 from pyjexl.exceptions import MissingTransformError
-from pyjexl.parser import JEXLVisitor
+from pyjexl.parser import Parser
 
 
 def tree(expression):
-    return JEXLVisitor().parse(expression)
+    return Parser().parse(expression)
 
 
 def test_literal():
@@ -27,8 +27,7 @@ def test_arithmetic():
 def test_string_concat():
     # Because we don't have implicit type conversions like JavaScript,
     # we diverge from the original JEXL test suite and add a filter.
-    evaluator = Evaluator()
-    evaluator.register_transform(str)
+    evaluator = Evaluator({'str': str})
     result = evaluator.evaluate(tree('"Hello" + (4+4)|str + "Wo\\"rld"'))
     assert result == 'Hello8Wo"rld'
 
@@ -49,24 +48,19 @@ def test_complex():
 
 
 def test_identifier_chain():
-    context = {'foo': {'baz': {'bar': 'tek'}}}
-    result = Evaluator(context).evaluate(tree('foo.baz.bar'))
+    context = Context({'foo': {'baz': {'bar': 'tek'}}})
+    result = Evaluator().evaluate(tree('foo.baz.bar'), context)
     assert result == 'tek'
 
 
 def test_transforms():
-    evaluator = Evaluator({'foo': 10})
-
-    @evaluator.register_transform
-    def half(val):
-        return val / 2
-
-    result = evaluator.evaluate(tree('foo|half + 3'))
+    evaluator = Evaluator({'half': lambda x: x / 2})
+    result = evaluator.evaluate(tree('foo|half + 3'), {'foo': 10})
     assert result == 8
 
 
 def test_filter_arrays():
-    evaluator = Evaluator({
+    context = Context({
         'foo': {
             'bar': [
                 {'tek': 'hello'},
@@ -76,12 +70,12 @@ def test_filter_arrays():
         }
     })
 
-    result = evaluator.evaluate(tree('foo.bar[.tek == "baz"]'))
+    result = Evaluator().evaluate(tree('foo.bar[.tek == "baz"]'), context)
     assert result == [{'tek': 'baz'}]
 
 
 def test_array_index():
-    evaluator = Evaluator({
+    context = Context({
         'foo': {
             'bar': [
                 {'tek': 'tok'},
@@ -91,13 +85,13 @@ def test_array_index():
         }
     })
 
-    result = evaluator.evaluate(tree('foo.bar[1].tek'))
+    result = Evaluator().evaluate(tree('foo.bar[1].tek'), context)
     assert result == 'baz'
 
 
 def test_filter_object_properties():
-    evaluator = Evaluator({'foo': {'baz': {'bar': 'tek'}}})
-    result = evaluator.evaluate(tree('foo["ba" + "z"].bar'))
+    context = Context({'foo': {'baz': {'bar': 'tek'}}})
+    result = Evaluator().evaluate(tree('foo["ba" + "z"].bar'), context)
     assert result == 'tek'
 
 
@@ -122,12 +116,9 @@ def test_empty_object_literal():
 
 
 def test_transforms_multiple_arguments():
-    evaluator = Evaluator()
-
-    @evaluator.register_transform
-    def concat(val, a1, a2, a3):
-        return val + ': ' + a1 + a2 + a3
-
+    evaluator = Evaluator({
+        'concat': lambda val, a1, a2, a3: val + ': ' + a1 + a2 + a3,
+    })
     result = evaluator.evaluate(tree('"foo"|concat("baz", "bar", "tek")'))
     assert result == 'foo: bazbartek'
 

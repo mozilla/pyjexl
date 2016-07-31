@@ -67,7 +67,7 @@ jexl_grammar = Grammar(r"""
 ))
 
 
-class JEXLVisitor(NodeVisitor):
+class Parser(NodeVisitor):
     grammar = jexl_grammar
 
     def __init__(self, *args, **kwargs):

@@ -4,9 +4,9 @@ from pyjexl.parser import (
     BinaryExpression,
     ConditionalExpression,
     Identifier,
-    JEXLVisitor,
     Literal,
     ObjectLiteral,
+    Parser,
     Transform,
     UnaryExpression,
     FilterExpression
@@ -18,11 +18,11 @@ def op(operator):
 
 
 def test_literal():
-    assert JEXLVisitor().parse('1') == Literal(1.0)
+    assert Parser().parse('1') == Literal(1.0)
 
 
 def test_binary_expression():
-    assert JEXLVisitor().parse('1+2') == BinaryExpression(
+    assert Parser().parse('1+2') == BinaryExpression(
         operator=op('+'),
         left=Literal(1),
         right=Literal(2)
@@ -30,7 +30,7 @@ def test_binary_expression():
 
 
 def test_binary_expression_priority_right():
-    assert JEXLVisitor().parse('2+3*4') == BinaryExpression(
+    assert Parser().parse('2+3*4') == BinaryExpression(
         operator=op('+'),
         left=Literal(2),
         right=BinaryExpression(
@@ -42,7 +42,7 @@ def test_binary_expression_priority_right():
 
 
 def test_binary_expression_priority_left():
-    assert JEXLVisitor().parse('2*3+4') == BinaryExpression(
+    assert Parser().parse('2*3+4') == BinaryExpression(
         operator=op('+'),
         left=BinaryExpression(
             operator=op('*'),
@@ -54,7 +54,7 @@ def test_binary_expression_priority_left():
 
 
 def test_binary_expression_encapsulation():
-    assert JEXLVisitor().parse('2+3*4==5/6-7') == BinaryExpression(
+    assert Parser().parse('2+3*4==5/6-7') == BinaryExpression(
         operator=op('=='),
         left=BinaryExpression(
             operator=op('+'),
@@ -78,7 +78,7 @@ def test_binary_expression_encapsulation():
 
 
 def test_unary_operator():
-    assert JEXLVisitor().parse('1*!!true-2') == BinaryExpression(
+    assert Parser().parse('1*!!true-2') == BinaryExpression(
         operator=op('-'),
         left=BinaryExpression(
             operator=op('*'),
@@ -96,7 +96,7 @@ def test_unary_operator():
 
 
 def test_subexpression():
-    assert JEXLVisitor().parse('(2+3)*4') == BinaryExpression(
+    assert Parser().parse('(2+3)*4') == BinaryExpression(
         operator=op('*'),
         left=BinaryExpression(
             operator=op('+'),
@@ -108,7 +108,7 @@ def test_subexpression():
 
 
 def test_nested_subexpression():
-    assert JEXLVisitor().parse('(4*(2+3))/5') == BinaryExpression(
+    assert Parser().parse('(4*(2+3))/5') == BinaryExpression(
         operator=op('/'),
         left=BinaryExpression(
             operator=op('*'),
@@ -124,7 +124,7 @@ def test_nested_subexpression():
 
 
 def test_object_literal():
-    assert JEXLVisitor().parse('{foo: "bar", tek: 1+2}') == ObjectLiteral({
+    assert Parser().parse('{foo: "bar", tek: 1+2}') == ObjectLiteral({
         'foo': Literal('bar'),
         'tek': BinaryExpression(
             operator=op('+'),
@@ -135,7 +135,7 @@ def test_object_literal():
 
 
 def test_nested_object_literals():
-    assert JEXLVisitor().parse('{foo: {bar: "tek"}}') == ObjectLiteral({
+    assert Parser().parse('{foo: {bar: "tek"}}') == ObjectLiteral({
         'foo': ObjectLiteral({
             'bar': Literal('tek')
         })
@@ -143,11 +143,11 @@ def test_nested_object_literals():
 
 
 def test_empty_object_literals():
-    assert JEXLVisitor().parse('{}') == ObjectLiteral({})
+    assert Parser().parse('{}') == ObjectLiteral({})
 
 
 def test_array_literals():
-    assert JEXLVisitor().parse('["foo", 1+2]') == ArrayLiteral([
+    assert Parser().parse('["foo", 1+2]') == ArrayLiteral([
         Literal('foo'),
         BinaryExpression(
             operator=op('+'),
@@ -158,7 +158,7 @@ def test_array_literals():
 
 
 def test_nexted_array_literals():
-    assert JEXLVisitor().parse('["foo", ["bar", "tek"]]') == ArrayLiteral([
+    assert Parser().parse('["foo", ["bar", "tek"]]') == ArrayLiteral([
         Literal('foo'),
         ArrayLiteral([
             Literal('bar'),
@@ -168,11 +168,11 @@ def test_nexted_array_literals():
 
 
 def test_empty_array_literals():
-    assert JEXLVisitor().parse('[]') == ArrayLiteral([])
+    assert Parser().parse('[]') == ArrayLiteral([])
 
 
 def test_chained_identifiers():
-    assert JEXLVisitor().parse('foo.bar.baz + 1') == BinaryExpression(
+    assert Parser().parse('foo.bar.baz + 1') == BinaryExpression(
         operator=op('+'),
         left=Identifier(
             'baz',
@@ -186,7 +186,7 @@ def test_chained_identifiers():
 
 
 def test_transforms():
-    assert JEXLVisitor().parse('foo|tr1|tr2.baz|tr3({bar:"tek"})') == Transform(
+    assert Parser().parse('foo|tr1|tr2.baz|tr3({bar:"tek"})') == Transform(
         name='tr3',
         args=[ObjectLiteral({
             'bar': Literal('tek')
@@ -207,7 +207,7 @@ def test_transforms():
 
 
 def test_transforms_multiple_arguments():
-    assert JEXLVisitor().parse('foo|bar("tek", 5, true)') == Transform(
+    assert Parser().parse('foo|bar("tek", 5, true)') == Transform(
         name='bar',
         args=[
             Literal('tek'),
@@ -219,7 +219,7 @@ def test_transforms_multiple_arguments():
 
 
 def test_filters():
-    assert JEXLVisitor().parse('foo[1][.bar[0]=="tek"].baz') == Identifier(
+    assert Parser().parse('foo[1][.bar[0]=="tek"].baz') == Identifier(
         value='baz',
         subject=FilterExpression(
             relative=True,
@@ -242,7 +242,7 @@ def test_filters():
 
 
 def test_attribute_all_operands():
-    assert JEXLVisitor().parse('"foo".length + {foo: "bar"}.foo') == BinaryExpression(
+    assert Parser().parse('"foo".length + {foo: "bar"}.foo') == BinaryExpression(
         operator=op('+'),
         left=Identifier('length', subject=Literal('foo')),
         right=Identifier(
@@ -255,7 +255,7 @@ def test_attribute_all_operands():
 
 
 def test_attribute_subexpression():
-    assert JEXLVisitor().parse('("foo" + "bar").length') == Identifier(
+    assert Parser().parse('("foo" + "bar").length') == Identifier(
         value='length',
         subject=BinaryExpression(
             operator=op('+'),
@@ -266,7 +266,7 @@ def test_attribute_subexpression():
 
 
 def test_attribute_array():
-    assert JEXLVisitor().parse('["foo", "bar"].length') == Identifier(
+    assert Parser().parse('["foo", "bar"].length') == Identifier(
         value='length',
         subject=ArrayLiteral([
             Literal('foo'),
@@ -276,7 +276,7 @@ def test_attribute_array():
 
 
 def test_ternary_expression():
-    assert JEXLVisitor().parse('foo ? 1 : 0') == ConditionalExpression(
+    assert Parser().parse('foo ? 1 : 0') == ConditionalExpression(
         test=Identifier('foo'),
         consequent=Literal(1),
         alternate=Literal(0)
@@ -284,7 +284,7 @@ def test_ternary_expression():
 
 
 def test_nested_grouped_ternary_expression():
-    assert JEXLVisitor().parse('foo ? (bar ? 1 : 2) : 3') == ConditionalExpression(
+    assert Parser().parse('foo ? (bar ? 1 : 2) : 3') == ConditionalExpression(
         test=Identifier('foo'),
         consequent=ConditionalExpression(
             test=Identifier('bar'),
@@ -296,7 +296,7 @@ def test_nested_grouped_ternary_expression():
 
 
 def test_nested_non_grouped_ternary_expression():
-    assert JEXLVisitor().parse('foo ? bar ? 1 : 2 : 3') == ConditionalExpression(
+    assert Parser().parse('foo ? bar ? 1 : 2 : 3') == ConditionalExpression(
         test=Identifier('foo'),
         consequent=ConditionalExpression(
             test=Identifier('bar'),
@@ -308,7 +308,7 @@ def test_nested_non_grouped_ternary_expression():
 
 
 def test_object_ternary_expression():
-    assert JEXLVisitor().parse('foo ? {bar: "tek"} : "baz"') == ConditionalExpression(
+    assert Parser().parse('foo ? {bar: "tek"} : "baz"') == ConditionalExpression(
         test=Identifier('foo'),
         consequent=ObjectLiteral({
             'bar': Literal('tek')
@@ -318,7 +318,7 @@ def test_object_ternary_expression():
 
 
 def test_complex_binary_operator_balancing():
-    assert JEXLVisitor().parse('a.b == c.d') == BinaryExpression(
+    assert Parser().parse('a.b == c.d') == BinaryExpression(
         operator=op('=='),
         left=Identifier('b', subject=Identifier('a')),
         right=Identifier('d', subject=Identifier('c'))
@@ -326,7 +326,7 @@ def test_complex_binary_operator_balancing():
 
 
 def test_arbitrary_whitespace():
-    assert JEXLVisitor().parse('\t2\r\n+\n\r3\n\n') == BinaryExpression(
+    assert Parser().parse('\t2\r\n+\n\r3\n\n') == BinaryExpression(
         operator=op('+'),
         left=Literal(2),
         right=Literal(3)
