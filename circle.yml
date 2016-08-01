@@ -1,0 +1,7 @@
+machine:
+    python:
+        version: 3.5.1
+test:
+    override:
+        - mkdir -p $CIRCLE_TEST_REPORTS/pytest
+        - py.test --junitxml=$CIRCLE_TEST_REPORTS/pytest/junit.xml
