@@ -1,7 +1,15 @@
 machine:
-    python:
-        version: 3.5.1
+    post:
+        - pyenv global 3.5.1
 test:
-    override:
+    pre:
+        - mkdir -p $CIRCLE_TEST_REPORTS/flake8
         - mkdir -p $CIRCLE_TEST_REPORTS/pytest
+    override:
+        # Linter
+        - flake8 --output-file $CIRCLE_TEST_REPORTS/flake8/flake8.txt pyjexl tests
+        # Tests
         - py.test --junitxml=$CIRCLE_TEST_REPORTS/pytest/junit.xml
+    post:
+        # Convert linter results to JUnit
+        - flake8_junit $CIRCLE_TEST_REPORTS/flake8/flake8.txt $CIRCLE_TEST_REPORTS/flake8/flake8.xml
