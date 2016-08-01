@@ -12,7 +12,9 @@ def operator_pattern(operators):
 
 
 jexl_grammar = Grammar(r"""
-    expression = _ (conditional_expression / binary_expression / unary_expression / complex_value) _
+    expression = (
+        _ (conditional_expression / binary_expression / unary_expression / complex_value) _
+    )
 
     conditional_expression = (
         conditional_test _ "?" _ expression _ ":" _ expression
