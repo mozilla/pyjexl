@@ -3,6 +3,7 @@ from functools import wraps
 
 from parsimonious.exceptions import ParseError as ParsimoniousParseError
 
+from pyjexl.analysis import ValidatingAnalyzer
 from pyjexl.evaluator import Context, Evaluator
 from pyjexl.exceptions import ParseError
 from pyjexl.operators import default_binary_operators, default_unary_operators, Operator
@@ -67,12 +68,21 @@ class JEXL(object):
             return func
         return wrapper
 
-    def evaluate(self, expression, context=None):
-        context = Context(context) if context is not None else self.context
-
+    def parse(self, expression):
         try:
-            parsed_expression = Parser(self.config).visit(self.grammar.parse(expression))
+            return Parser(self.config).visit(self.grammar.parse(expression))
         except ParsimoniousParseError as err:
             raise ParseError('Could not parse expression: ' + expression) from err
 
+    def analyze(self, expression, AnalyzerClass):
+        parsed_expression = self.parse(expression)
+        visitor = AnalyzerClass(self.config)
+        return visitor.visit(parsed_expression)
+
+    def validate(self, expression):
+        yield from self.analyze(expression, ValidatingAnalyzer)
+
+    def evaluate(self, expression, context=None):
+        parsed_expression = self.parse(expression)
+        context = Context(context) if context is not None else self.context
         return Evaluator(self.config).evaluate(parsed_expression, context)

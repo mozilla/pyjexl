@@ -1,5 +1,6 @@
 import pytest
 
+from pyjexl.analysis import JEXLAnalyzer
 from pyjexl.exceptions import MissingTransformError, ParseError
 from pyjexl.jexl import JEXL
 
@@ -99,3 +100,34 @@ def test_grammar_invalidation():
     jexl.remove_unary_operator('=')
     with pytest.raises(ParseError):
         jexl.evaluate('=5')
+
+
+def test_validate():
+    jexl = JEXL()
+    jexl.add_transform('foo', lambda x: x + 1)
+    assert list(jexl.validate('5+6|foo')) == []
+
+    errors = list(jexl.validate('5+6|bar'))
+    assert len(errors) == 1
+    assert 'bar' in errors[0]
+
+
+class SumIntAnalyzer(JEXLAnalyzer):
+    """Test analyzer that sums up all integers in a statement."""
+    def generic_visit(self, expression):
+        children = list(expression.children)
+        if children:
+            return sum(self.visit(child) for child in children)
+        else:
+            return 0
+
+    def visit_Literal(self, literal):
+        if isinstance(literal.value, int):
+            return literal.value
+        else:
+            return 0
+
+
+def test_analysis():
+    jexl = JEXL()
+    assert jexl.analyze('1+(2*3)|concat(4)', SumIntAnalyzer) == 10
