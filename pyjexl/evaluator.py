@@ -30,8 +30,8 @@ class Context(MutableMapping):
 
 
 class Evaluator(object):
-    def __init__(self, transforms=None):
-        self.transforms = transforms or {}
+    def __init__(self, jexl_config):
+        self.config = jexl_config
 
     def evaluate(self, expression, context=None):
         method = getattr(self, 'visit_' + type(expression).__name__, self.generic_visit)
@@ -71,7 +71,7 @@ class Evaluator(object):
 
     def visit_Transform(self, transform, context):
         try:
-            transform_func = self.transforms[transform.name]
+            transform_func = self.config.transforms[transform.name]
         except KeyError:
             raise MissingTransformError(
                 'No transform found with the name "{name}"'.format(name=transform.name)

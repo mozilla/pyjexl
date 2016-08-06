@@ -2,78 +2,83 @@ import ast
 
 from parsimonious import Grammar, NodeVisitor
 
-from pyjexl.operators import binary_operators, Operator, unary_operators
+from pyjexl.exceptions import InvalidOperatorError
+from pyjexl.operators import Operator
 
 
 def operator_pattern(operators):
     """Generate a grammar rule to match a dict of operators."""
+    # Sort operators and reverse them so that operators sharing a prefix
+    # always have the shortest forms last. Otherwise, the shorter forms
+    # will match operators early, i.e. `<` will match `<=` and ignore
+    # the `=`, causing a parse error.
+    operators = sorted(operators, key=lambda op: op.symbol, reverse=True)
     operator_literals = ['"{}"'.format(op.symbol) for op in operators]
     return ' / '.join(operator_literals)
 
 
-jexl_grammar = Grammar(r"""
-    expression = (
-        _ (conditional_expression / binary_expression / unary_expression / complex_value) _
-    )
+def jexl_grammar(jexl_config):
+    return Grammar(r"""
+        expression = (
+            _ (conditional_expression / binary_expression / unary_expression / complex_value) _
+        )
 
-    conditional_expression = (
-        conditional_test _ "?" _ expression _ ":" _ expression
-    )
-    conditional_test = (binary_expression / unary_expression / complex_value)
+        conditional_expression = (
+            conditional_test _ "?" _ expression _ ":" _ expression
+        )
+        conditional_test = (binary_expression / unary_expression / complex_value)
 
-    binary_expression = binary_operand (_ binary_operator _ binary_operand)+
-    binary_operator = {binary_op_pattern}
-    binary_operand = (unary_expression / complex_value)
+        binary_expression = binary_operand (_ binary_operator _ binary_operand)+
+        binary_operator = {binary_op_pattern}
+        binary_operand = (unary_expression / complex_value)
 
-    unary_expression = unary_operator _ unary_operand
-    unary_operator = {unary_op_pattern}
-    unary_operand = (unary_expression / complex_value)
+        unary_expression = unary_operator _ unary_operand
+        unary_operator = {unary_op_pattern}
+        unary_operand = (unary_expression / complex_value)
 
-    complex_value = value (transform / attribute / filter_expression)*
+        complex_value = value (transform / attribute / filter_expression)*
 
-    transform = "|" identifier transform_arguments?
-    transform_arguments = "(" _ value_list _ ")"
+        transform = "|" identifier transform_arguments?
+        transform_arguments = "(" _ value_list _ ")"
 
-    attribute = "." identifier
+        attribute = "." identifier
 
-    filter_expression = "[" _ expression _ "]"
+        filter_expression = "[" _ expression _ "]"
 
-    value = (
-        boolean / string / numeric / subexpression / object_literal /
-        array_literal / identifier / relative_identifier
-    )
+        value = (
+            boolean / string / numeric / subexpression / object_literal /
+            array_literal / identifier / relative_identifier
+        )
 
-    subexpression = "(" _ expression _ ")"
+        subexpression = "(" _ expression _ ")"
 
-    object_literal = "{{" _ object_key_value_list? _ "}}"
-    object_key_value_list = object_key_value (_ "," _ object_key_value)*
-    object_key_value = identifier _ ":" _ expression
+        object_literal = "{{" _ object_key_value_list? _ "}}"
+        object_key_value_list = object_key_value (_ "," _ object_key_value)*
+        object_key_value = identifier _ ":" _ expression
 
-    array_literal = "[" _ value_list? _ "]"
-    value_list = expression (_ "," _ expression)*
+        array_literal = "[" _ value_list? _ "]"
+        value_list = expression (_ "," _ expression)*
 
-    identifier = ~r"[a-zA-Z_\$][a-zA-Z0-9_\$]*"
-    relative_identifier = "." identifier
+        identifier = ~r"[a-zA-Z_\$][a-zA-Z0-9_\$]*"
+        relative_identifier = "." identifier
 
-    boolean = "true" / "false"
-    string = ~"\"[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*\""is /
-             ~"'[^'\\\\]*(?:\\\\.[^'\\\\]*)*'"is
-    numeric = "-"? number ("." number)?
+        boolean = "true" / "false"
+        string = ~"\"[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*\""is /
+                 ~"'[^'\\\\]*(?:\\\\.[^'\\\\]*)*'"is
+        numeric = "-"? number ("." number)?
 
-    number = ~r"[0-9]+"
+        number = ~r"[0-9]+"
 
-    _ = ~r"\s*"
-""".format(
-    binary_op_pattern=operator_pattern(binary_operators.values()),
-    unary_op_pattern=operator_pattern(unary_operators.values())
-))
+        _ = ~r"\s*"
+    """.format(
+        binary_op_pattern=operator_pattern(jexl_config.binary_operators.values()),
+        unary_op_pattern=operator_pattern(jexl_config.unary_operators.values())
+    ))
 
 
 class Parser(NodeVisitor):
-    grammar = jexl_grammar
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, jexl_config):
+        self.config = jexl_config
         self._relative = 0
 
     def visit_expression(self, node, children):
@@ -92,7 +97,7 @@ class Parser(NodeVisitor):
             pieces.append(value)
 
         # Build a tree of binary operators based on precedence. Adapted
-        # from JEXL's parser code for handle binary operators.
+        # from JEXL's parser code for handling binary operators.
         cursor = pieces.pop(0)
         for piece in pieces:
             if not isinstance(piece, Operator):
@@ -123,7 +128,10 @@ class Parser(NodeVisitor):
         return children[0]
 
     def visit_binary_operator(self, node, children):
-        return binary_operators[node.text]
+        try:
+            return self.config.binary_operators[node.text]
+        except KeyError as err:
+            raise InvalidOperatorError(node.text) from err
 
     def visit_binary_operand(self, node, children):
         return children[0]
@@ -133,7 +141,10 @@ class Parser(NodeVisitor):
         return UnaryExpression(operator=operator, right=value)
 
     def visit_unary_operator(self, node, children):
-        return unary_operators[node.text]
+        try:
+            return self.config.unary_operators[node.text]
+        except KeyError as err:
+            raise InvalidOperatorError(node.text) from err
 
     def visit_unary_operand(self, node, children):
         return children[0]

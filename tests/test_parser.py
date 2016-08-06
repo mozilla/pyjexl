@@ -1,4 +1,5 @@
-from pyjexl.operators import operators
+from collections import ChainMap
+
 from pyjexl.parser import (
     ArrayLiteral,
     BinaryExpression,
@@ -6,35 +7,35 @@ from pyjexl.parser import (
     Identifier,
     Literal,
     ObjectLiteral,
-    Parser,
     Transform,
     UnaryExpression,
     FilterExpression
 )
 
+from . import default_config, DefaultParser
 
-def op(operator):
-    return operators[operator]
+
+_ops = ChainMap(default_config.binary_operators, default_config.unary_operators)
 
 
 def test_literal():
-    assert Parser().parse('1') == Literal(1.0)
+    assert DefaultParser().parse('1') == Literal(1.0)
 
 
 def test_binary_expression():
-    assert Parser().parse('1+2') == BinaryExpression(
-        operator=op('+'),
+    assert DefaultParser().parse('1+2') == BinaryExpression(
+        operator=_ops['+'],
         left=Literal(1),
         right=Literal(2)
     )
 
 
 def test_binary_expression_priority_right():
-    assert Parser().parse('2+3*4') == BinaryExpression(
-        operator=op('+'),
+    assert DefaultParser().parse('2+3*4') == BinaryExpression(
+        operator=_ops['+'],
         left=Literal(2),
         right=BinaryExpression(
-            operator=op('*'),
+            operator=_ops['*'],
             left=Literal(3),
             right=Literal(4),
         )
@@ -42,10 +43,10 @@ def test_binary_expression_priority_right():
 
 
 def test_binary_expression_priority_left():
-    assert Parser().parse('2*3+4') == BinaryExpression(
-        operator=op('+'),
+    assert DefaultParser().parse('2*3+4') == BinaryExpression(
+        operator=_ops['+'],
         left=BinaryExpression(
-            operator=op('*'),
+            operator=_ops['*'],
             left=Literal(2),
             right=Literal(3),
         ),
@@ -54,21 +55,21 @@ def test_binary_expression_priority_left():
 
 
 def test_binary_expression_encapsulation():
-    assert Parser().parse('2+3*4==5/6-7') == BinaryExpression(
-        operator=op('=='),
+    assert DefaultParser().parse('2+3*4==5/6-7') == BinaryExpression(
+        operator=_ops['=='],
         left=BinaryExpression(
-            operator=op('+'),
+            operator=_ops['+'],
             left=Literal(2),
             right=BinaryExpression(
-                operator=op('*'),
+                operator=_ops['*'],
                 left=Literal(3),
                 right=Literal(4)
             ),
         ),
         right=BinaryExpression(
-            operator=op('-'),
+            operator=_ops['-'],
             left=BinaryExpression(
-                operator=op('/'),
+                operator=_ops['/'],
                 left=Literal(5),
                 right=Literal(6)
             ),
@@ -78,15 +79,15 @@ def test_binary_expression_encapsulation():
 
 
 def test_unary_operator():
-    assert Parser().parse('1*!!true-2') == BinaryExpression(
-        operator=op('-'),
+    assert DefaultParser().parse('1*!!true-2') == BinaryExpression(
+        operator=_ops['-'],
         left=BinaryExpression(
-            operator=op('*'),
+            operator=_ops['*'],
             left=Literal(1),
             right=UnaryExpression(
-                operator=op('!'),
+                operator=_ops['!'],
                 right=UnaryExpression(
-                    operator=op('!'),
+                    operator=_ops['!'],
                     right=Literal(True)
                 )
             )
@@ -96,10 +97,10 @@ def test_unary_operator():
 
 
 def test_subexpression():
-    assert Parser().parse('(2+3)*4') == BinaryExpression(
-        operator=op('*'),
+    assert DefaultParser().parse('(2+3)*4') == BinaryExpression(
+        operator=_ops['*'],
         left=BinaryExpression(
-            operator=op('+'),
+            operator=_ops['+'],
             left=Literal(2),
             right=Literal(3)
         ),
@@ -108,13 +109,13 @@ def test_subexpression():
 
 
 def test_nested_subexpression():
-    assert Parser().parse('(4*(2+3))/5') == BinaryExpression(
-        operator=op('/'),
+    assert DefaultParser().parse('(4*(2+3))/5') == BinaryExpression(
+        operator=_ops['/'],
         left=BinaryExpression(
-            operator=op('*'),
+            operator=_ops['*'],
             left=Literal(4),
             right=BinaryExpression(
-                operator=op('+'),
+                operator=_ops['+'],
                 left=Literal(2),
                 right=Literal(3)
             )
@@ -124,10 +125,10 @@ def test_nested_subexpression():
 
 
 def test_object_literal():
-    assert Parser().parse('{foo: "bar", tek: 1+2}') == ObjectLiteral({
+    assert DefaultParser().parse('{foo: "bar", tek: 1+2}') == ObjectLiteral({
         'foo': Literal('bar'),
         'tek': BinaryExpression(
-            operator=op('+'),
+            operator=_ops['+'],
             left=Literal(1),
             right=Literal(2)
         )
@@ -135,7 +136,7 @@ def test_object_literal():
 
 
 def test_nested_object_literals():
-    assert Parser().parse('{foo: {bar: "tek"}}') == ObjectLiteral({
+    assert DefaultParser().parse('{foo: {bar: "tek"}}') == ObjectLiteral({
         'foo': ObjectLiteral({
             'bar': Literal('tek')
         })
@@ -143,14 +144,14 @@ def test_nested_object_literals():
 
 
 def test_empty_object_literals():
-    assert Parser().parse('{}') == ObjectLiteral({})
+    assert DefaultParser().parse('{}') == ObjectLiteral({})
 
 
 def test_array_literals():
-    assert Parser().parse('["foo", 1+2]') == ArrayLiteral([
+    assert DefaultParser().parse('["foo", 1+2]') == ArrayLiteral([
         Literal('foo'),
         BinaryExpression(
-            operator=op('+'),
+            operator=_ops['+'],
             left=Literal(1),
             right=Literal(2)
         )
@@ -158,7 +159,7 @@ def test_array_literals():
 
 
 def test_nexted_array_literals():
-    assert Parser().parse('["foo", ["bar", "tek"]]') == ArrayLiteral([
+    assert DefaultParser().parse('["foo", ["bar", "tek"]]') == ArrayLiteral([
         Literal('foo'),
         ArrayLiteral([
             Literal('bar'),
@@ -168,12 +169,12 @@ def test_nexted_array_literals():
 
 
 def test_empty_array_literals():
-    assert Parser().parse('[]') == ArrayLiteral([])
+    assert DefaultParser().parse('[]') == ArrayLiteral([])
 
 
 def test_chained_identifiers():
-    assert Parser().parse('foo.bar.baz + 1') == BinaryExpression(
-        operator=op('+'),
+    assert DefaultParser().parse('foo.bar.baz + 1') == BinaryExpression(
+        operator=_ops['+'],
         left=Identifier(
             'baz',
             subject=Identifier(
@@ -186,7 +187,7 @@ def test_chained_identifiers():
 
 
 def test_transforms():
-    assert Parser().parse('foo|tr1|tr2.baz|tr3({bar:"tek"})') == Transform(
+    assert DefaultParser().parse('foo|tr1|tr2.baz|tr3({bar:"tek"})') == Transform(
         name='tr3',
         args=[ObjectLiteral({
             'bar': Literal('tek')
@@ -207,7 +208,7 @@ def test_transforms():
 
 
 def test_transforms_multiple_arguments():
-    assert Parser().parse('foo|bar("tek", 5, true)') == Transform(
+    assert DefaultParser().parse('foo|bar("tek", 5, true)') == Transform(
         name='bar',
         args=[
             Literal('tek'),
@@ -219,12 +220,12 @@ def test_transforms_multiple_arguments():
 
 
 def test_filters():
-    assert Parser().parse('foo[1][.bar[0]=="tek"].baz') == Identifier(
+    assert DefaultParser().parse('foo[1][.bar[0]=="tek"].baz') == Identifier(
         value='baz',
         subject=FilterExpression(
             relative=True,
             expression=BinaryExpression(
-                operator=op('=='),
+                operator=_ops['=='],
                 left=FilterExpression(
                     relative=False,
                     expression=Literal(0),
@@ -242,8 +243,8 @@ def test_filters():
 
 
 def test_attribute_all_operands():
-    assert Parser().parse('"foo".length + {foo: "bar"}.foo') == BinaryExpression(
-        operator=op('+'),
+    assert DefaultParser().parse('"foo".length + {foo: "bar"}.foo') == BinaryExpression(
+        operator=_ops['+'],
         left=Identifier('length', subject=Literal('foo')),
         right=Identifier(
             value='foo',
@@ -255,10 +256,10 @@ def test_attribute_all_operands():
 
 
 def test_attribute_subexpression():
-    assert Parser().parse('("foo" + "bar").length') == Identifier(
+    assert DefaultParser().parse('("foo" + "bar").length') == Identifier(
         value='length',
         subject=BinaryExpression(
-            operator=op('+'),
+            operator=_ops['+'],
             left=Literal('foo'),
             right=Literal('bar')
         )
@@ -266,7 +267,7 @@ def test_attribute_subexpression():
 
 
 def test_attribute_array():
-    assert Parser().parse('["foo", "bar"].length') == Identifier(
+    assert DefaultParser().parse('["foo", "bar"].length') == Identifier(
         value='length',
         subject=ArrayLiteral([
             Literal('foo'),
@@ -276,7 +277,7 @@ def test_attribute_array():
 
 
 def test_ternary_expression():
-    assert Parser().parse('foo ? 1 : 0') == ConditionalExpression(
+    assert DefaultParser().parse('foo ? 1 : 0') == ConditionalExpression(
         test=Identifier('foo'),
         consequent=Literal(1),
         alternate=Literal(0)
@@ -284,7 +285,7 @@ def test_ternary_expression():
 
 
 def test_nested_grouped_ternary_expression():
-    assert Parser().parse('foo ? (bar ? 1 : 2) : 3') == ConditionalExpression(
+    assert DefaultParser().parse('foo ? (bar ? 1 : 2) : 3') == ConditionalExpression(
         test=Identifier('foo'),
         consequent=ConditionalExpression(
             test=Identifier('bar'),
@@ -296,7 +297,7 @@ def test_nested_grouped_ternary_expression():
 
 
 def test_nested_non_grouped_ternary_expression():
-    assert Parser().parse('foo ? bar ? 1 : 2 : 3') == ConditionalExpression(
+    assert DefaultParser().parse('foo ? bar ? 1 : 2 : 3') == ConditionalExpression(
         test=Identifier('foo'),
         consequent=ConditionalExpression(
             test=Identifier('bar'),
@@ -308,7 +309,7 @@ def test_nested_non_grouped_ternary_expression():
 
 
 def test_object_ternary_expression():
-    assert Parser().parse('foo ? {bar: "tek"} : "baz"') == ConditionalExpression(
+    assert DefaultParser().parse('foo ? {bar: "tek"} : "baz"') == ConditionalExpression(
         test=Identifier('foo'),
         consequent=ObjectLiteral({
             'bar': Literal('tek')
@@ -318,16 +319,16 @@ def test_object_ternary_expression():
 
 
 def test_complex_binary_operator_balancing():
-    assert Parser().parse('a.b == c.d') == BinaryExpression(
-        operator=op('=='),
+    assert DefaultParser().parse('a.b == c.d') == BinaryExpression(
+        operator=_ops['=='],
         left=Identifier('b', subject=Identifier('a')),
         right=Identifier('d', subject=Identifier('c'))
     )
 
 
 def test_arbitrary_whitespace():
-    assert Parser().parse('\t2\r\n+\n\r3\n\n') == BinaryExpression(
-        operator=op('+'),
+    assert DefaultParser().parse('\t2\r\n+\n\r3\n\n') == BinaryExpression(
+        operator=_ops['+'],
         left=Literal(2),
         right=Literal(3)
     )
