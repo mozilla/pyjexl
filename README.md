@@ -1,6 +1,6 @@
 # PyJEXL
 
-A Python-based JEXL parser and evaluator.
+A Python-based [JEXL](http://commons.apache.org/proper/commons-jexl/) parser and evaluator.
 
 ## Limitations and Differences from JEXL
 
