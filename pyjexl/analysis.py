@@ -18,4 +18,6 @@ class ValidatingAnalyzer(JEXLAnalyzer):
 
     def generic_visit(self, expression):
         for child in expression.children:
+            if child is None:
+                import ipdb; ipdb.set_trace()
             yield from self.visit(child)

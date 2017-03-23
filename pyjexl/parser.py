@@ -338,7 +338,8 @@ class Identifier(Node):
 
     @property
     def children(self):
-        yield self.subject
+        if self.subject is not None:
+            yield self.subject
 
 
 class ObjectLiteral(Node):

@@ -276,6 +276,18 @@ def test_attribute_array():
     )
 
 
+def test_identifier_filter_expression():
+    assert DefaultParser().parse('foo.bar["baz"]') == FilterExpression(
+        expression=Literal('baz'),
+        subject=Identifier(
+            value='bar',
+            subject=Identifier(
+                value='foo'
+            )
+        )
+    )
+
+
 def test_ternary_expression():
     assert DefaultParser().parse('foo ? 1 : 0') == ConditionalExpression(
         test=Identifier('foo'),
