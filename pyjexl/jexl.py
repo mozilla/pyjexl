@@ -80,7 +80,10 @@ class JEXL(object):
         return visitor.visit(parsed_expression)
 
     def validate(self, expression):
-        yield from self.analyze(expression, ValidatingAnalyzer)
+        try:
+            yield from self.analyze(expression, ValidatingAnalyzer)
+        except ParseError as err:
+            yield str(err)
 
     def evaluate(self, expression, context=None):
         parsed_expression = self.parse(expression)

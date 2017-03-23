@@ -111,6 +111,9 @@ def test_validate():
     assert len(errors) == 1
     assert 'bar' in errors[0]
 
+    errors = list(jexl.validate('1+'))
+    assert errors == ['Could not parse expression: 1+']
+
 
 class SumIntAnalyzer(JEXLAnalyzer):
     """Test analyzer that sums up all integers in a statement."""
