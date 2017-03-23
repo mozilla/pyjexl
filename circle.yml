@@ -1,6 +1,6 @@
 machine:
     python:
-        version: 3.5.1
+        version: 3.6.1
 test:
     pre:
         - mkdir -p $CIRCLE_TEST_REPORTS/flake8
