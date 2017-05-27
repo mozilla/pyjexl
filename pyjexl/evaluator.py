@@ -1,7 +1,6 @@
-from collections.abc import MutableMapping
-
+from __future__ import absolute_import
+from collections import MutableMapping
 from pyjexl.exceptions import MissingTransformError
-
 
 class Context(MutableMapping):
     def __init__(self, context_data=None):
@@ -61,10 +60,9 @@ class Evaluator(object):
         return subject.get(identifier.value, None)
 
     def visit_ObjectLiteral(self, object_literal, context):
-        return {
-            key: self.evaluate(value, context)
-            for key, value in object_literal.value.items()
-        }
+        return dict((
+            key, self.evaluate(value, context))
+            for key, value in object_literal.value.items())
 
     def visit_ArrayLiteral(self, array_literal, context):
         return [self.evaluate(value, context) for value in array_literal.value]

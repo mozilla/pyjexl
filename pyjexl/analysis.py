@@ -14,9 +14,9 @@ class ValidatingAnalyzer(JEXLAnalyzer):
     def visit_Transform(self, transform):
         if transform.name not in self.config.transforms:
             yield "The `{name}` transform is undefined.".format(name=transform.name)
-        yield from self.generic_visit(transform)
+        for t in self.generic_visit(transform): yield t
 
     def generic_visit(self, expression):
         for child in expression.children:
             assert child is not None
-            yield from self.visit(child)
+            for c in self.visit(child): yield c

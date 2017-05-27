@@ -1,4 +1,5 @@
-from collections import ChainMap
+from __future__ import absolute_import
+import chainmap
 
 from pyjexl.parser import (
     ArrayLiteral,
@@ -15,7 +16,7 @@ from pyjexl.parser import (
 from . import default_config, DefaultParser
 
 
-_ops = ChainMap(default_config.binary_operators, default_config.unary_operators)
+_ops = chainmap.ChainMap(default_config.binary_operators, default_config.unary_operators)
 
 
 def test_literal():

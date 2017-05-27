@@ -13,7 +13,7 @@ def operator_pattern(operators):
     # will match operators early, i.e. `<` will match `<=` and ignore
     # the `=`, causing a parse error.
     operators = sorted(operators, key=lambda op: op.symbol, reverse=True)
-    operator_literals = ['"{}"'.format(op.symbol) for op in operators]
+    operator_literals = ['"{0}"'.format(op.symbol) for op in operators]
     return ' / '.join(operator_literals)
 
 
@@ -131,7 +131,7 @@ class Parser(NodeVisitor):
         try:
             return self.config.binary_operators[node.text]
         except KeyError as err:
-            raise InvalidOperatorError(node.text) from err
+            raise InvalidOperatorError(node.text)
 
     def visit_binary_operand(self, node, children):
         return children[0]
@@ -144,7 +144,7 @@ class Parser(NodeVisitor):
         try:
             return self.config.unary_operators[node.text]
         except KeyError as err:
-            raise InvalidOperatorError(node.text) from err
+            raise InvalidOperatorError(node.text)
 
     def visit_unary_operand(self, node, children):
         return children[0]
@@ -253,7 +253,7 @@ class NodeMeta(type):
         return type.__new__(meta, classname, bases, classdict)
 
 
-class Node(object, metaclass=NodeMeta):
+class Node(object):
     """
     Base class for AST Nodes.
 
@@ -261,6 +261,7 @@ class Node(object, metaclass=NodeMeta):
     fields attribute on the class that lists the desired attributes for
     the class.
     """
+    __metaclass__ = NodeMeta
     fields = []
 
     def __init__(self, *args, **kwargs):
@@ -334,7 +335,7 @@ class Identifier(Node):
 
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('relative', False)
-        super().__init__(*args, **kwargs)
+        super(Identifier, self).__init__(*args, **kwargs)
 
     @property
     def children(self):
@@ -356,7 +357,7 @@ class Transform(Node):
     @property
     def children(self):
         yield self.subject
-        yield from self.args
+        for arg in self.args: yield arg    
 
 
 class FilterExpression(Node):
@@ -364,7 +365,7 @@ class FilterExpression(Node):
 
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('relative', False)
-        super().__init__(*args, **kwargs)
+        super(FilterExpression, self).__init__(*args, **kwargs)
 
     @property
     def children(self):

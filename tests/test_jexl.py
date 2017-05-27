@@ -1,3 +1,6 @@
+from __future__ import division
+from __future__ import with_statement
+from __future__ import absolute_import
 import pytest
 
 from pyjexl.analysis import JEXLAnalyzer
@@ -105,6 +108,7 @@ def test_grammar_invalidation():
 def test_validate():
     jexl = JEXL()
     jexl.add_transform('foo', lambda x: x + 1)
+    assert list(jexl.validate('5+6|foo')) == []
     assert list(jexl.validate('5+6|foo')) == []
 
     errors = list(jexl.validate('5+6|bar'))

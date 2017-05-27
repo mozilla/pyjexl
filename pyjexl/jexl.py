@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from collections import namedtuple
 from functools import wraps
 
@@ -71,19 +72,20 @@ class JEXL(object):
     def parse(self, expression):
         try:
             return Parser(self.config).visit(self.grammar.parse(expression))
-        except ParsimoniousParseError as err:
-            raise ParseError('Could not parse expression: ' + expression) from err
+        except ParsimoniousParseError, err:
+            raise ParseError('Could not parse expression: ' + expression)
 
     def analyze(self, expression, AnalyzerClass):
         parsed_expression = self.parse(expression)
         visitor = AnalyzerClass(self.config)
         return visitor.visit(parsed_expression)
 
+
     def validate(self, expression):
         try:
-            yield from self.analyze(expression, ValidatingAnalyzer)
-        except ParseError as err:
-            yield str(err)
+            for res in self.analyze(expression, ValidatingAnalyzer): yield res
+        except ParseError, err:
+            yield unicode(err)
 
     def evaluate(self, expression, context=None):
         parsed_expression = self.parse(expression)

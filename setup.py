@@ -1,6 +1,9 @@
+from __future__ import with_statement
+from __future__ import absolute_import
 from codecs import open
 from os import path
 from setuptools import setup, find_packages
+from io import open
 
 
 BASE_DIR = path.abspath(path.dirname(__file__))
@@ -49,7 +52,7 @@ setup(
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
-        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.6, 2.7',
     ],
 
     # What does your project relate to?
