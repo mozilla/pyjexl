@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from future.builtins.misc import (super)
 from pyjexl.evaluator import Evaluator
 from pyjexl.jexl import JEXLConfig
 from pyjexl.operators import default_binary_operators, default_unary_operators
@@ -12,9 +12,9 @@ class DefaultParser(Parser):
     grammar = jexl_grammar(default_config)
 
     def __init__(self, config=None):
-        super(DefaultParser, self).__init__(config or default_config)
+        super().__init__(config or default_config)
 
 
 class DefaultEvaluator(Evaluator):
     def __init__(self, config=None):
-        super(DefaultEvaluator, self).__init__(config or default_config)
+        super().__init__(config or default_config)
