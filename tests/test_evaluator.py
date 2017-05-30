@@ -2,7 +2,7 @@ from __future__ import with_statement
 from __future__ import division
 from __future__ import absolute_import
 import pytest
-
+from builtins import str
 from pyjexl.evaluator import Context, Evaluator
 from pyjexl.exceptions import MissingTransformError
 from pyjexl.jexl import JEXLConfig
@@ -33,7 +33,7 @@ def test_arithmetic():
 def test_string_concat():
     # Because we don't have implicit type conversions like JavaScript,
     # we diverge from the original JEXL test suite and add a filter.
-    config = JEXLConfig({'str': unicode}, default_binary_operators, default_unary_operators)
+    config = JEXLConfig({'str': str}, default_binary_operators, default_unary_operators)
     evaluator = Evaluator(config)
     result = evaluator.evaluate(tree('"Hello" + (4+4)|str + "Wo\\"rld"'))
     assert result == 'Hello8Wo"rld'

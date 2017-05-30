@@ -1,9 +1,9 @@
 import ast
-
+from builtins import str
 from parsimonious import Grammar, NodeVisitor
-
 from pyjexl.exceptions import InvalidOperatorError
 from pyjexl.operators import Operator
+from future.utils import with_metaclass
 
 
 def operator_pattern(operators):
@@ -131,7 +131,7 @@ class Parser(NodeVisitor):
         try:
             return self.config.binary_operators[node.text]
         except KeyError as err:
-            raise InvalidOperatorError(node.text)
+            raise InvalidOperatorError(node.text) + str(err)
 
     def visit_binary_operand(self, node, children):
         return children[0]
@@ -144,7 +144,7 @@ class Parser(NodeVisitor):
         try:
             return self.config.unary_operators[node.text]
         except KeyError as err:
-            raise InvalidOperatorError(node.text)
+            raise InvalidOperatorError(node.text) + str(err)
 
     def visit_unary_operand(self, node, children):
         return children[0]
@@ -253,7 +253,7 @@ class NodeMeta(type):
         return type.__new__(meta, classname, bases, classdict)
 
 
-class Node(object):
+class Node(with_metaclass(NodeMeta, object)):
     """
     Base class for AST Nodes.
 
@@ -261,7 +261,6 @@ class Node(object):
     fields attribute on the class that lists the desired attributes for
     the class.
     """
-    __metaclass__ = NodeMeta
     fields = []
 
     def __init__(self, *args, **kwargs):
@@ -357,7 +356,8 @@ class Transform(Node):
     @property
     def children(self):
         yield self.subject
-        for arg in self.args: yield arg    
+        for arg in self.args:
+            yield arg
 
 
 class FilterExpression(Node):

@@ -1,6 +1,5 @@
 from __future__ import with_statement
 from __future__ import absolute_import
-from codecs import open
 from os import path
 from setuptools import setup, find_packages
 from io import open

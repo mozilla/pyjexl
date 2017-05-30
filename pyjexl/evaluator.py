@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from collections import MutableMapping
 from pyjexl.exceptions import MissingTransformError
 
+
 class Context(MutableMapping):
     def __init__(self, context_data=None):
         self.data = context_data or {}
