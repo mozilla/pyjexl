@@ -1,4 +1,5 @@
 import ast
+from future.builtins.misc import (super)
 from builtins import str
 from parsimonious import Grammar, NodeVisitor
 from pyjexl.exceptions import InvalidOperatorError
@@ -334,7 +335,7 @@ class Identifier(Node):
 
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('relative', False)
-        super(Identifier, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     @property
     def children(self):
@@ -365,7 +366,7 @@ class FilterExpression(Node):
 
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('relative', False)
-        super(FilterExpression, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     @property
     def children(self):
