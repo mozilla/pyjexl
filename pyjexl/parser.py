@@ -1,10 +1,11 @@
 import ast
-from future.builtins.misc import (super)
-from builtins import str
+from future.builtins.misc import super
+from future.utils import with_metaclass
+
 from parsimonious import Grammar, NodeVisitor
+
 from pyjexl.exceptions import InvalidOperatorError
 from pyjexl.operators import Operator
-from future.utils import with_metaclass
 
 
 def operator_pattern(operators):
@@ -14,7 +15,7 @@ def operator_pattern(operators):
     # will match operators early, i.e. `<` will match `<=` and ignore
     # the `=`, causing a parse error.
     operators = sorted(operators, key=lambda op: op.symbol, reverse=True)
-    operator_literals = ['"{0}"'.format(op.symbol) for op in operators]
+    operator_literals = ['"{}"'.format(op.symbol) for op in operators]
     return ' / '.join(operator_literals)
 
 
@@ -131,8 +132,8 @@ class Parser(NodeVisitor):
     def visit_binary_operator(self, node, children):
         try:
             return self.config.binary_operators[node.text]
-        except KeyError as err:
-            raise InvalidOperatorError(node.text) + str(err)
+        except KeyError:
+            raise InvalidOperatorError(node.text)
 
     def visit_binary_operand(self, node, children):
         return children[0]
@@ -144,8 +145,8 @@ class Parser(NodeVisitor):
     def visit_unary_operator(self, node, children):
         try:
             return self.config.unary_operators[node.text]
-        except KeyError as err:
-            raise InvalidOperatorError(node.text) + str(err)
+        except KeyError:
+            raise InvalidOperatorError(node.text)
 
     def visit_unary_operand(self, node, children):
         return children[0]

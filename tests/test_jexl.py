@@ -1,6 +1,3 @@
-from __future__ import division
-from __future__ import with_statement
-from __future__ import absolute_import
 import pytest
 
 from pyjexl.analysis import JEXLAnalyzer
@@ -109,20 +106,13 @@ def test_validate():
     jexl = JEXL()
     jexl.add_transform('foo', lambda x: x + 1)
     assert list(jexl.validate('5+6|foo')) == []
-    assert list(jexl.validate('5+6|foo')) == []
 
     errors = list(jexl.validate('5+6|bar'))
     assert len(errors) == 1
     assert 'bar' in errors[0]
 
-    """
-    this test is failing and not sure why
-    At index 0 diff: "Could not parse expression: 1+Rule 'expression'
-    matched in its entirety, but it didn't consume all the text. The non-matching
-    portion of the text begins with '+' (line 1, column 2)." != 'Could not parse expression: 1+'
-    """
-    # errors = list(jexl.validate('1+'))
-    # assert errors == ['Could not parse expression: 1+']
+    errors = list(jexl.validate('1+'))
+    assert errors == ['Could not parse expression: 1+']
 
 
 def test_validate_simple_equality():

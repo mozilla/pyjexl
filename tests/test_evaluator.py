@@ -1,8 +1,7 @@
-from __future__ import with_statement
-from __future__ import division
-from __future__ import absolute_import
-import pytest
 from builtins import str
+
+import pytest
+
 from pyjexl.evaluator import Context, Evaluator
 from pyjexl.exceptions import MissingTransformError
 from pyjexl.jexl import JEXLConfig

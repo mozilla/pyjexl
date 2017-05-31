@@ -1,7 +1,6 @@
-from __future__ import absolute_import
+from builtins import open
 from os import path
 from setuptools import setup, find_packages
-from io import open
 
 
 BASE_DIR = path.abspath(path.dirname(__file__))
