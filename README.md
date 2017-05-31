@@ -2,7 +2,7 @@
 
 A Python-based JEXL parser and evaluator.
 
-__NOTE:__ This library handles the "Java__Script__ Expression Language" from
+__NOTE:__ This library handles the JEXL from
 [TechnologyAdvice's JEXL library][jexl]. It does __NOT__ handle the
 similarly-named Apache Commons JEXL language.
 
