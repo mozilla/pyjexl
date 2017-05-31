@@ -115,6 +115,12 @@ def test_validate():
     assert errors == ['Could not parse expression: 1+']
 
 
+def test_validate_simple_equality():
+    jexl = JEXL()
+    errors = list(jexl.validate('FOO_BAR ==12345'))
+    assert errors == []
+
+
 class SumIntAnalyzer(JEXLAnalyzer):
     """Test analyzer that sums up all integers in a statement."""
     def generic_visit(self, expression):

@@ -1,5 +1,3 @@
-from collections import ChainMap
-
 from pyjexl.parser import (
     ArrayLiteral,
     BinaryExpression,
@@ -15,7 +13,9 @@ from pyjexl.parser import (
 from . import default_config, DefaultParser
 
 
-_ops = ChainMap(default_config.binary_operators, default_config.unary_operators)
+_ops = {}
+_ops.update(default_config.binary_operators)
+_ops.update(default_config.unary_operators)
 
 
 def test_literal():

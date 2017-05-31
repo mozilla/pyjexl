@@ -1,15 +1,8 @@
-machine:
-    python:
-        version: 3.6.1
-test:
-    pre:
-        - mkdir -p $CIRCLE_TEST_REPORTS/flake8
-        - mkdir -p $CIRCLE_TEST_REPORTS/pytest
+dependencies:
     override:
-        # Linter
-        - flake8 --output-file $CIRCLE_TEST_REPORTS/flake8/flake8.txt pyjexl tests
-        # Tests
-        - py.test --junitxml=$CIRCLE_TEST_REPORTS/pytest/junit.xml
-    post:
-        # Convert linter results to JUnit
-        - flake8_junit $CIRCLE_TEST_REPORTS/flake8/flake8.txt $CIRCLE_TEST_REPORTS/flake8/flake8.xml
+        - pip install -r requirements.txt
+        - pip install tox-pyenv
+        - pyenv local 2.7.12 3.6.1
+test:
+    override:
+        - tox

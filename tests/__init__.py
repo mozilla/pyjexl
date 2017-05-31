@@ -1,3 +1,5 @@
+from future.builtins.misc import super
+
 from pyjexl.evaluator import Evaluator
 from pyjexl.jexl import JEXLConfig
 from pyjexl.operators import default_binary_operators, default_unary_operators

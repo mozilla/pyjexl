@@ -1,4 +1,6 @@
 import ast
+from future.builtins.misc import super
+from future.utils import with_metaclass
 
 from parsimonious import Grammar, NodeVisitor
 
@@ -130,8 +132,8 @@ class Parser(NodeVisitor):
     def visit_binary_operator(self, node, children):
         try:
             return self.config.binary_operators[node.text]
-        except KeyError as err:
-            raise InvalidOperatorError(node.text) from err
+        except KeyError:
+            raise InvalidOperatorError(node.text)
 
     def visit_binary_operand(self, node, children):
         return children[0]
@@ -143,8 +145,8 @@ class Parser(NodeVisitor):
     def visit_unary_operator(self, node, children):
         try:
             return self.config.unary_operators[node.text]
-        except KeyError as err:
-            raise InvalidOperatorError(node.text) from err
+        except KeyError:
+            raise InvalidOperatorError(node.text)
 
     def visit_unary_operand(self, node, children):
         return children[0]
@@ -253,7 +255,7 @@ class NodeMeta(type):
         return type.__new__(meta, classname, bases, classdict)
 
 
-class Node(object, metaclass=NodeMeta):
+class Node(with_metaclass(NodeMeta, object)):
     """
     Base class for AST Nodes.
 
@@ -356,7 +358,8 @@ class Transform(Node):
     @property
     def children(self):
         yield self.subject
-        yield from self.args
+        for arg in self.args:
+            yield arg
 
 
 class FilterExpression(Node):

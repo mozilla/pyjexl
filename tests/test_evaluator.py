@@ -1,3 +1,5 @@
+from builtins import str
+
 import pytest
 
 from pyjexl.evaluator import Context, Evaluator

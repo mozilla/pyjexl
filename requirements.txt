@@ -1,4 +1,6 @@
+future
 parsimonious
 pytest
 flake8
 flake8-junit-report
+tox
