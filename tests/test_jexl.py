@@ -114,6 +114,9 @@ def test_validate():
     errors = list(jexl.validate('1+'))
     assert errors == ['Could not parse expression: 1+']
 
+    errors = list(jexl.validate('"\n"'))
+    assert errors == ['Could not parse expression: "\n"']
+
 
 def test_validate_simple_equality():
     jexl = JEXL()

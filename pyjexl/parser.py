@@ -65,8 +65,8 @@ def jexl_grammar(jexl_config):
         relative_identifier = "." identifier
 
         boolean = "true" / "false"
-        string = ~"\"[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*\""is /
-                 ~"'[^'\\\\]*(?:\\\\.[^'\\\\]*)*'"is
+        string = ~"\"[^\"\\\\\\n]*(?:\\\\.[^\"\\\\\\n]*)*\""is /
+                 ~"'[^'\\\\\\n]*(?:\\\\.[^'\\\\\\n]*)*'"is
         numeric = "-"? number ("." number)?
 
         number = ~r"[0-9]+"
