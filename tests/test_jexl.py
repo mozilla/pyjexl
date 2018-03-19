@@ -1,5 +1,8 @@
 import pytest
 
+import hypothesis
+from hypothesis import strategies
+
 from pyjexl.analysis import JEXLAnalyzer
 from pyjexl.exceptions import MissingTransformError, ParseError
 from pyjexl.jexl import JEXL
@@ -116,6 +119,34 @@ def test_validate():
 
     errors = list(jexl.validate('"\n"'))
     assert errors == ['Could not parse expression: "\n"']
+
+
+JEXL_ALPHABET = strategies.characters(whitelist_categories=(
+    # Letters
+    'Lu', 'Ll',
+    # Numbers
+    'Nd', 'No',
+    # Spaces
+    'Zs', 'Zl', 'Zp',
+), whitelist_characters=[
+    '\t', '\n', '\r', ' ',
+    '$', '|', '+', '/',
+    '(', ')', '{', '}', '[', ']',
+    "'", '"', ',', ':', '?',
+])
+
+
+@hypothesis.given(strategies.text(JEXL_ALPHABET))
+@hypothesis.settings(max_examples=500)
+def test_validate_always_returns(s):
+    jexl = JEXL()
+    errors = list(jexl.validate(s))
+    assert isinstance(errors, list)
+
+    # I couldn't figure out how to generate '{{' and '}}' (or, indeed,
+    # any general sequence of characters), so just generate it intentionally.
+    errors = list(jexl.validate(s.replace('{', '{{').replace('}', '}}')))
+    assert isinstance(errors, list)
 
 
 def test_validate_simple_equality():
