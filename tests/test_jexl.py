@@ -138,13 +138,18 @@ JEXL_ALPHABET = strategies.characters(whitelist_categories=(
 
 @hypothesis.given(strategies.text(JEXL_ALPHABET))
 @hypothesis.settings(max_examples=500)
-def test_validate_always_returns(s):
+def test_validate_never_throws(s):
     jexl = JEXL()
     errors = list(jexl.validate(s))
     assert isinstance(errors, list)
 
-    # I couldn't figure out how to generate '{{' and '}}' (or, indeed,
-    # any general sequence of characters), so just generate it intentionally.
+    # '{{' and '}}' are vanishingly rare sequences when generating
+    # by-character the way we do. Artificially increase coverage of
+    # these important sequences by explicitly generating them based on
+    # single-character '{' and '}'.
+    #
+    # FIXME: figure out how to randomly generate a sequence of tokens
+    # instead of characters.
     errors = list(jexl.validate(s.replace('{', '{{').replace('}', '}}')))
     assert isinstance(errors, list)
 
