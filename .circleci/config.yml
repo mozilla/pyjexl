@@ -1,75 +1,6 @@
 version: 2
-workflows:
-  version: 2
-  test_upload:
-    jobs:
-      - test-3.6
-      - test-2.7
-      - upload:
-          requires:
-            - test-3.6
-            - test-2.7
-          filters:
-            tags:
-              only: /v.*/
-            branches:
-              ignore: /.*/
-jobs:
-  upload:
-    docker:
-      - image: circleci/python:3.6-jessie-node
-
-    working_directory: ~/repo
-
-    steps:
-      - checkout
-
-      # Download and cache dependencies
-      - restore_cache:
-          keys:
-          - v1-{{ .Environment.CIRCLE_JOB }}-dependencies-{{ checksum "requirements.txt" }}
-          # fallback to using the latest cache if no exact match is found
-          - v1-{{ .Environment.CIRCLE_JOB }}-dependencies-
-
-      - run:
-          name: install dependencies
-          command: |
-            python -m venv venv
-            . venv/bin/activate
-            pip install -r requirements.txt
-
-      - save_cache:
-          paths:
-            - ./venv
-          key: v1-{{ .Environment.CIRCLE_JOB }}-dependencies-{{ checksum "requirements.txt" }}
-
-      - run:
-          name: init .pypirc
-          command: |
-            echo -e "[pypi]" >> ~/.pypirc
-            echo -e "username = $PYPI_USERNAME" >> ~/.pypirc
-            echo -e "password = $PYPI_PASSWORD" >> ~/.pypirc
-
-      - run:
-          name: package
-          command: |
-            . venv/bin/activate
-            python setup.py sdist bdist_wheel
-
-      - run:
-          name: upload
-          command: |
-            . venv/bin/activate
-            twine upload dist/*
-
-      - store_artifacts:
-          path: test-reports
-          destination: test-reports
-
-  test-3.6: &test-template
-    docker:
-      - image: circleci/python:3.6-jessie-node
-
+shared:
+  test-template: &test-template
     working_directory: ~/repo
 
     steps:
@@ -104,6 +35,74 @@ jobs:
       - store_artifacts:
           path: test-reports
           destination: test-reports
+
+workflows:
+  version: 2
+  test_upload:
+    jobs:
+      - test-3.6
+      - test-2.7
+      - upload:
+          requires:
+            - test-3.6
+            - test-2.7
+          filters:
+            tags:
+              only: /v.*/
+            branches:
+              ignore: /.*/
+
+jobs:
+  upload:
+    docker:
+      - image: circleci/python:3.6-jessie-node
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+          - v1-test-3.6-dependencies-{{ checksum "requirements.txt" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-test-3.6-dependencies-
+
+      - run:
+          name: install dependencies
+          command: |
+            python -m venv venv
+            . venv/bin/activate
+            pip install -r requirements.txt
+
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-{{ .Environment.CIRCLE_JOB }}-dependencies-{{ checksum "requirements.txt" }}
+
+      - run:
+          name: init .pypirc
+          command: |
+            echo -e "[pypi]" >> ~/.pypirc
+            echo -e "username = $PYPI_USERNAME" >> ~/.pypirc
+            echo -e "password = $PYPI_PASSWORD" >> ~/.pypirc
+
+      - run:
+          name: package
+          command: |
+            ./venv/bin/python setup.py sdist bdist_wheel
+
+      - run:
+          name: upload
+          command: |
+            . venv/bin/activate
+            twine upload dist/*
+
+  test-3.6:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.6-jessie-node
 
   test-2.7:
     <<: *test-template
