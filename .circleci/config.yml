@@ -40,8 +40,14 @@ workflows:
   version: 2
   test_upload:
     jobs:
-      - test-3.6
-      - test-2.7
+      - test-3.6:
+          filters:
+            tags:
+              only: /.*/
+      - test-2.7:
+          filters:
+            tags:
+              only: /.*/
       - upload:
           requires:
             - test-3.6
