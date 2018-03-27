@@ -40,18 +40,8 @@ workflows:
   version: 2
   test_upload:
     jobs:
-      - test-3.6:
-        filters:
-          tags:
-            only: /.*/
-          branches:
-            only: /.*/
-      - test-2.7:
-        filters:
-          tags:
-            only: /.*/
-          branches:
-            only: /.*/
+      - test-3.6
+      - test-2.7
       - upload:
           requires:
             - test-3.6
