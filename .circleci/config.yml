@@ -38,7 +38,7 @@ shared:
 
 workflows:
   version: 2
-  test:
+  test_upload:
     jobs:
       - test-3.6:
         filters:
