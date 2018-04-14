@@ -1,7 +1,6 @@
 import pytest
 
 import hypothesis
-from hypothesis import strategies
 
 from pyjexl.analysis import JEXLAnalyzer
 from pyjexl.exceptions import MissingTransformError, ParseError
@@ -121,7 +120,7 @@ def test_validate():
     assert errors == ['Could not parse expression: "\n"']
 
 
-JEXL_ALPHABET = strategies.characters(whitelist_categories=(
+JEXL_ALPHABET = hypothesis.strategies.characters(whitelist_categories=(
     # Letters
     'Lu', 'Ll',
     # Numbers
@@ -136,7 +135,7 @@ JEXL_ALPHABET = strategies.characters(whitelist_categories=(
 ])
 
 
-@hypothesis.given(strategies.text(JEXL_ALPHABET))
+@hypothesis.given(hypothesis.strategies.text(JEXL_ALPHABET))
 @hypothesis.settings(max_examples=500)
 def test_validate_never_throws(s):
     jexl = JEXL()
