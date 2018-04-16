@@ -5,3 +5,5 @@
 /dist
 /.tox
 .hypothesis/
+.eggs
+.pytest_cache
