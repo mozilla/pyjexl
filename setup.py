@@ -22,6 +22,9 @@ setup(
     description='A JEXL parser and evaluator.',
     long_description=long_description,
 
+    # So it formats the README markdown on pypi.org
+    long_description_content_type='text/markdown',
+
     # The project's main homepage.
     url='https://github.com/Osmose/pyjexl',
 
