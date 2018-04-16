@@ -1,5 +1,4 @@
 import pytest
-
 import hypothesis
 
 from pyjexl.analysis import JEXLAnalyzer
@@ -7,7 +6,15 @@ from pyjexl.exceptions import MissingTransformError, ParseError
 from pyjexl.jexl import JEXL
 
 
-def test_it_works():
+@pytest.fixture
+def jexl():
+    """Return an instance of the JEXL class. Useful when tests are
+    repeated with hypothesis since only one instance of JEXL is created
+    once."""
+    return JEXL()
+
+
+def test_it_works(jexl):
     assert JEXL().evaluate('1 + 1') == 2
 
 
@@ -137,8 +144,7 @@ JEXL_ALPHABET = hypothesis.strategies.characters(whitelist_categories=(
 
 @hypothesis.given(hypothesis.strategies.text(JEXL_ALPHABET))
 @hypothesis.settings(max_examples=500)
-def test_validate_never_throws(s):
-    jexl = JEXL()
+def test_validate_never_throws(jexl, s):
     errors = list(jexl.validate(s))
     assert isinstance(errors, list)
 
