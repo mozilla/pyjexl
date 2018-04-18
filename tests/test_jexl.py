@@ -1,11 +1,20 @@
 import pytest
+import hypothesis
 
 from pyjexl.analysis import JEXLAnalyzer
 from pyjexl.exceptions import MissingTransformError, ParseError
 from pyjexl.jexl import JEXL
 
 
-def test_it_works():
+@pytest.fixture
+def jexl():
+    """Return an instance of the JEXL class. Useful when tests are
+    repeated with hypothesis since only one instance of JEXL is created
+    once."""
+    return JEXL()
+
+
+def test_it_works(jexl):
     assert JEXL().evaluate('1 + 1') == 2
 
 
@@ -116,6 +125,38 @@ def test_validate():
 
     errors = list(jexl.validate('"\n"'))
     assert errors == ['Could not parse expression: "\n"']
+
+
+JEXL_ALPHABET = hypothesis.strategies.characters(whitelist_categories=(
+    # Letters
+    'Lu', 'Ll',
+    # Numbers
+    'Nd', 'No',
+    # Spaces
+    'Zs', 'Zl', 'Zp',
+), whitelist_characters=[
+    '\t', '\n', '\r', ' ',
+    '$', '|', '+', '/',
+    '(', ')', '{', '}', '[', ']',
+    "'", '"', ',', ':', '?',
+])
+
+
+@hypothesis.given(hypothesis.strategies.text(JEXL_ALPHABET))
+@hypothesis.settings(max_examples=500)
+def test_validate_never_throws(jexl, s):
+    errors = list(jexl.validate(s))
+    assert isinstance(errors, list)
+
+    # '{{' and '}}' are vanishingly rare sequences when generating
+    # by-character the way we do. Artificially increase coverage of
+    # these important sequences by explicitly generating them based on
+    # single-character '{' and '}'.
+    #
+    # FIXME: figure out how to randomly generate a sequence of tokens
+    # instead of characters.
+    errors = list(jexl.validate(s.replace('{', '{{').replace('}', '}}')))
+    assert isinstance(errors, list)
 
 
 def test_validate_simple_equality():

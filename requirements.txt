@@ -1,4 +1,5 @@
 future
+hypothesis
 parsimonious
 pytest
 flake8
