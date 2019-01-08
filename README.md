@@ -5,10 +5,10 @@
 A Python-based JEXL parser and evaluator.
 
 **NOTE:** This library handles the JEXL from
-[TechnologyAdvice's JEXL library][jexl]. It does **NOT** handle the
+[TomFrost's JEXL library][jexl]. It does **NOT** handle the
 similarly-named Apache Commons JEXL language.
 
-[jexl]: https://github.com/TechnologyAdvice/Jexl
+[jexl]: https://github.com/TomFrost/Jexl
 
 ## Limitations and Differences from JEXL
 
