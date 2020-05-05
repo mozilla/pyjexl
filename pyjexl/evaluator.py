@@ -38,13 +38,13 @@ class Evaluator(object):
         return method(expression, context)
 
     def visit_BinaryExpression(self, exp, context):
-        left = self.evaluate(exp.left, context)
-        right = self.evaluate(exp.right, context)
-        return exp.operator.evaluate(left, right)
+        return exp.operator.do_evaluate(
+            lambda: self.evaluate(exp.left, context),
+            lambda: self.evaluate(exp.right, context)
+        )
 
     def visit_UnaryExpression(self, exp, context):
-        right = self.evaluate(exp.right, context)
-        return exp.operator.evaluate(right)
+        return exp.operator.do_evaluate(lambda: self.evaluate(exp.right, context))
 
     def visit_Literal(self, literal, context):
         return literal.value
