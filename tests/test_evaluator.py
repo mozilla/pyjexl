@@ -176,3 +176,17 @@ def test_conditional_expression():
 def test_arbitrary_whitespace():
     result = DefaultEvaluator().evaluate(tree('(\t2\n+\n3) *\n4\n\r\n'))
     assert result == 20
+
+
+@pytest.mark.parametrize('expression,expect_result,expect_fail', [
+    ('true || 1/0', True, False),
+    ('true && 1/0', None, True),
+    ('false || 1/0', None, True),
+    ('false && 1/0', False, False),
+])
+def test_logic_shortcuts(expression, expect_result, expect_fail):
+    if expect_fail:
+        with pytest.raises(Exception):
+            DefaultEvaluator().evaluate(tree(expression))
+    else:
+        assert expect_result == DefaultEvaluator().evaluate(tree(expression))
