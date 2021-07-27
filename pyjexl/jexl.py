@@ -1,5 +1,5 @@
 from builtins import str
-from collections.abc import namedtuple
+from collections import namedtuple
 from functools import wraps
 
 from parsimonious.exceptions import ParseError as ParsimoniousParseError
