@@ -6,7 +6,7 @@ from pyjexl.exceptions import MissingTransformError, ParseError
 from pyjexl.jexl import JEXL
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def jexl():
     """Return an instance of the JEXL class. Useful when tests are
     repeated with hypothesis since only one instance of JEXL is created
