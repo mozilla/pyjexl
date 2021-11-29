@@ -1,4 +1,11 @@
-from collections.abc import MutableMapping
+try:
+    from collections.abc import MutableMapping
+except ImportError:
+    # Python 2.7 compat
+    # TODO: Decide if we stop supporting 2.7
+    # as it's been EOL for a while now
+    from collections import MutableMapping
+
 from pyjexl.exceptions import MissingTransformError
 
 
