@@ -26,11 +26,11 @@ setup(
     long_description_content_type='text/markdown',
 
     # The project's main homepage.
-    url='https://github.com/Osmose/pyjexl',
+    url='https://github.com/mozilla/pyjexl',
 
     # Author details
-    author='Osmose (Michael Kelly)',
-    author_email='me@mkelly.me',
+    author='Mythmon',
+    author_email='mcooper@mozilla.com',
 
     # Choose your license
     license='MIT',
