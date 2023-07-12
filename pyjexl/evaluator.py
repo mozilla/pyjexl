@@ -83,7 +83,7 @@ class Evaluator(object):
                 'No transform found with the name "{name}"'.format(name=transform.name)
             )
 
-        args = [self.evaluate(arg) for arg in transform.args]
+        args = [self.evaluate(arg, context) for arg in transform.args]
         return transform_func(self.evaluate(transform.subject, context), *args)
 
     def visit_FilterExpression(self, filter_expression, context):
